@@ -5,8 +5,10 @@ import { BRAND } from "@/lib/brand";
 
 const NAV = [
   { href: "/admin", label: "Dashboard" },
-  { href: "/admin/enquiries", label: "Enquiries" },
+  { href: "/admin/requests", label: "Requests" },
   { href: "/admin/students", label: "Students" },
+  { href: "/admin/enquiries", label: "Enquiries" },
+  { href: "/admin/packs", label: "Packs" },
   { href: "/admin/batches", label: "Live batches" },
 ];
 

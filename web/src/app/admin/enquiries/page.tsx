@@ -134,9 +134,9 @@ async function Enquiries({ searchParams }: { searchParams: SP }) {
             {rows.map((l) => (
               <tr key={l.id}>
                 <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
-                  {l.createdAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  {l.createdAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}
                   <br />
-                  <span className="text-xs">{l.createdAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="text-xs">{l.createdAt.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })}</span>
                 </td>
                 <td className="px-4 py-3">
                   <p className="font-medium">{l.name}</p>

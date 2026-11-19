@@ -21,14 +21,14 @@ export default function MockTestsPage() {
         <ButtonLink href="/test/full-1" variant="light">
           Start free Full Mock 1
         </ButtonLink>
-        <ButtonLink href="/account" variant="outline-light">
-          My tests
+        <ButtonLink href="/packs" variant="outline-light">
+          See packs and prices
         </ButtonLink>
       </PageHero>
 
       <Section
         title="All mock tests"
-        intro="Test 1 of every type is free with an account (each can be taken once). Tests 2–10 are part of the paid packs, launching soon."
+        intro="Test 1 of every type is free with an account (each can be taken once). Tests 2–10 are unlocked with a pack: request it, and we contact you with the payment details."
       >
         <TestCatalog signedIn={false} />
         <p className="mt-6 text-sm text-zinc-600">

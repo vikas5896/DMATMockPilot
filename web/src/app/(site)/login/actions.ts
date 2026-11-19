@@ -6,6 +6,7 @@ import { getDb } from "@/db";
 import { students } from "@/db/schema";
 import { currentStudent, requestStudentCode, studentLogout, verifyStudentCode } from "@/lib/auth";
 import { safeNext } from "@/lib/safe-next";
+import { notifyAdmins } from "@/lib/email";
 
 export type StudentLoginState = {
   step: "email" | "code" | "profile";
@@ -38,6 +39,12 @@ export async function studentLoginAction(prev: StudentLoginState, fd: FormData):
     if (!consent) return { ...keep, error: "Please agree to be contacted." };
     const db = await getDb();
     await db.update(students).set({ name, phone }).where(eq(students.id, me.id));
+    await notifyAdmins(`New student: ${name}`, [
+      `${name} just signed up.`,
+      `Email: ${me.email}`,
+      `Phone: ${phone}`,
+      `Started from: ${next}`,
+    ]);
     redirect(next);
   }
 

@@ -4,6 +4,7 @@ import { ExamRunner } from "@/components/exam/ExamRunner";
 import { LockedTest } from "@/components/exam/LockedTest";
 import { currentStudent } from "@/lib/auth";
 import { getOrCreateAttempt } from "@/lib/attempt-store";
+import { canAccess, listPacks, openRequests, packCovers } from "@/lib/access";
 import { parseTestId } from "@/lib/exam/catalog";
 import { isTestKind, type Attempt } from "@/lib/exam/tests";
 
@@ -31,7 +32,16 @@ async function TestLoader({ params }: Props) {
   const me = await currentStudent();
   if (!me || !me.name || !me.phone) redirect(`/login?next=${encodeURIComponent(`/test/${test.id}`)}`);
 
-  if (!test.free) return <LockedTest test={test} />;
+  if (!(await canAccess(me.id, test))) {
+    const [packList, open] = await Promise.all([listPacks({ publishedOnly: true }), openRequests(me.id)]);
+    return (
+      <LockedTest
+        test={test}
+        packs={packList.filter((p) => packCovers(p, test.kind))}
+        requested={open.map((r) => r.packSlug)}
+      />
+    );
+  }
 
   const row = await getOrCreateAttempt(me.id, test);
   return (

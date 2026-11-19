@@ -5,7 +5,7 @@ import { useState } from "react";
 import { isCorrect, scoreSubtest } from "@/lib/exam/scoring";
 import { TESTS, type Attempt } from "@/lib/exam/tests";
 import type { GeneratedItem } from "@/lib/exam/types";
-import { BRAND } from "@/lib/brand";
+import { BRAND, waHref } from "@/lib/brand";
 import { formatClock } from "./ExamChrome";
 import { ItemView } from "./ItemView";
 
@@ -101,10 +101,32 @@ export function Results({
           <Link href="/account" className="rounded-md bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark">
             Back to my tests
           </Link>
-          <Link href="/mock-tests" className="rounded-md border border-zinc-300 bg-white px-6 py-3 font-semibold">
-            All mock tests
+          <Link href="/packs" className="rounded-md border border-zinc-300 bg-white px-6 py-3 font-semibold">
+            Unlock more tests
           </Link>
         </div>
+
+        {BRAND.contact.whatsapp && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+            <div>
+              <p className="font-semibold text-emerald-900">Want to improve this score?</p>
+              <p className="text-sm text-emerald-900/80">
+                Book a free 15-minute call: we go through your result and plan your preparation together.
+              </p>
+            </div>
+            <a
+              href={waHref(
+                BRAND.contact.whatsapp,
+                `Hi ${BRAND.name}, I just finished ${title} and scored ${total}/${max}. Can we book a free 15-minute call about my preparation?`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-700"
+            >
+              Discuss my result on WhatsApp
+            </a>
+          </div>
+        )}
 
         <h2 className="mt-12 text-xl font-bold">Review every task</h2>
         {test.subtests.map((spec, s) => (

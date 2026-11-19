@@ -33,7 +33,7 @@ async function Students({ searchParams }: { searchParams: SP }) {
   const all = await db.select().from(attempts);
   const byStudent = new Map<number, typeof all>();
   for (const a of all) byStudent.set(a.studentId, [...(byStudent.get(a.studentId) ?? []), a]);
-  const date = (d: Date | null) => (d ? d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");
+  const date = (d: Date | null) => (d ? d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" }) : "—");
 
   return (
     <AdminShell
@@ -41,7 +41,7 @@ async function Students({ searchParams }: { searchParams: SP }) {
       active="/admin/students"
       title="Students"
       actions={
-        <a href="/admin/students/export" className="rounded-md border border-brand px-4 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">
+        <a href="/admin/students/export" download className="rounded-md border border-brand px-4 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">
           Download CSV
         </a>
       }
@@ -83,7 +83,9 @@ async function Students({ searchParams }: { searchParams: SP }) {
               return (
                 <tr key={s.id}>
                   <td className="px-4 py-3">
-                    <p className="font-medium">{s.name ?? <span className="text-zinc-400">(profile not finished)</span>}</p>
+                    <Link href={`/admin/students/${s.id}`} className="font-medium text-zinc-900 hover:text-brand hover:underline">
+                      {s.name ?? <span className="text-zinc-400">(profile not finished)</span>}
+                    </Link>
                     <a href={`mailto:${s.email}`} className="block text-brand hover:underline">
                       {s.email}
                     </a>

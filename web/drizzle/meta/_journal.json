@@ -15,6 +15,13 @@
       "when": 1795084950380,
       "tag": "0001_students_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795087410839,
+      "tag": "0002_packs_requests_grants",
+      "breakpoints": true
     }
   ]
 }

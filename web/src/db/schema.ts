@@ -69,6 +69,54 @@ export const attempts = pgTable(
   (t) => [uniqueIndex("attempts_student_test").on(t.studentId, t.testId)],
 );
 
+/** Paid packs (e.g. Section Pack, Full Pack). `kinds` = which test types' tests 2–10 the pack unlocks. */
+export const packs = pgTable("packs", {
+  slug: text("slug").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  priceInr: integer("price_inr"),
+  validityDays: integer("validity_days").notNull().default(180),
+  kinds: jsonb("kinds").$type<string[]>().notNull(),
+  published: boolean("published").notNull().default(true),
+  sort: integer("sort").notNull().default(0),
+});
+
+/** A student asking for a pack. We contact them, they pay, an admin grants access. */
+export const accessRequests = pgTable("access_requests", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => students.id, { onDelete: "cascade" }),
+  packSlug: text("pack_slug").notNull(),
+  message: text("message"),
+  /** new → contacted → paid → granted / closed */
+  status: text("status").notNull().default("new"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Access given by an admin after payment (or for free), with the payment record. */
+export const grants = pgTable("grants", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => students.id, { onDelete: "cascade" }),
+  packSlug: text("pack_slug").notNull(),
+  grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  amountInr: integer("amount_inr"),
+  paymentRef: text("payment_ref"),
+  paymentDate: text("payment_date"),
+  note: text("note"),
+  grantedBy: text("granted_by").notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+});
+
+export type Pack = typeof packs.$inferSelect;
+export type AccessRequest = typeof accessRequests.$inferSelect;
+export type Grant = typeof grants.$inferSelect;
+export const REQUEST_STATUSES = ["new", "contacted", "paid", "granted", "closed"] as const;
 export type Student = typeof students.$inferSelect;
 export type AttemptRow = typeof attempts.$inferSelect;
 export type Lead = typeof leads.$inferSelect;

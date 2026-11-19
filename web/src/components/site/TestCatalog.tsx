@@ -3,9 +3,19 @@ import { CATALOG, type CatalogTest } from "@/lib/exam/catalog";
 
 export type TestStatus = { status: "in_progress" | "completed"; score: number | null; maxScore: number | null };
 
-function TestTile({ t, st, signedIn }: { t: CatalogTest; st?: TestStatus; signedIn: boolean }) {
+function TestTile({
+  t,
+  st,
+  signedIn,
+  unlocked,
+}: {
+  t: CatalogTest;
+  st?: TestStatus;
+  signedIn: boolean;
+  unlocked?: boolean;
+}) {
   const href = `/test/${t.id}`;
-  if (!t.free) {
+  if (!t.free && !unlocked) {
     return (
       <Link
         href={href}
@@ -34,7 +44,8 @@ function TestTile({ t, st, signedIn }: { t: CatalogTest; st?: TestStatus; signed
       }`}
     >
       <span>
-        {t.short} <span className="ml-1 rounded bg-white/70 px-1.5 py-0.5 text-[10px] uppercase text-emerald-700">free</span>
+        {t.short}{" "}
+        {t.free && <span className="ml-1 rounded bg-white/70 px-1.5 py-0.5 text-[10px] uppercase text-emerald-700">free</span>}
       </span>
       <span>
         {st?.status === "completed" && st.score != null ? `${st.score}/${st.maxScore} · ` : ""}
@@ -45,7 +56,16 @@ function TestTile({ t, st, signedIn }: { t: CatalogTest; st?: TestStatus; signed
 }
 
 /** The test catalogue: free tests open (once each), the rest locked until paid packs launch. */
-export function TestCatalog({ statuses, signedIn }: { statuses?: Record<string, TestStatus>; signedIn: boolean }) {
+export function TestCatalog({
+  statuses,
+  signedIn,
+  unlocked,
+}: {
+  statuses?: Record<string, TestStatus>;
+  signedIn: boolean;
+  /** test types unlocked by the student's packs */
+  unlocked?: string[];
+}) {
   return (
     <div className="space-y-6">
       {CATALOG.map((group) => (
@@ -53,7 +73,8 @@ export function TestCatalog({ statuses, signedIn }: { statuses?: Record<string, 
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h3 className="text-lg font-bold">{group.title}</h3>
             <p className="text-xs text-zinc-500">
-              {group.tests[0].minutes} min · Test 1 free · Tests 2–{group.tests.length} with a paid pack
+              {group.tests[0].minutes} min · Test 1 free ·{" "}
+              {unlocked?.includes(group.kind) ? "Tests 2–10 unlocked ✓" : `Tests 2–${group.tests.length} with a pack`}
             </p>
           </div>
           <p className="mt-1 text-sm text-zinc-600">{group.blurb}</p>
@@ -62,7 +83,7 @@ export function TestCatalog({ statuses, signedIn }: { statuses?: Record<string, 
               <TestTile t={group.tests[0]} st={statuses?.[group.tests[0].id]} signedIn={signedIn} />
             </div>
             {group.tests.slice(1).map((t) => (
-              <TestTile key={t.id} t={t} st={statuses?.[t.id]} signedIn={signedIn} />
+              <TestTile key={t.id} t={t} st={statuses?.[t.id]} signedIn={signedIn} unlocked={unlocked?.includes(t.kind)} />
             ))}
           </div>
         </section>

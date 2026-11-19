@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { loginCodes, students, type Student } from "@/db/schema";
 import { BRAND } from "@/lib/brand";
+import { sendEmail } from "@/lib/email";
 
 /**
  * Login with one-time email codes, for two kinds of users:
@@ -39,30 +40,20 @@ const hashCode = (email: string, code: string) =>
   createHash("sha256").update(`${email}:${code}:${process.env.AUTH_SECRET}`).digest("hex");
 
 async function sendCodeEmail(email: string, code: string, purpose: "admin" | "student"): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM;
-  if (!key || !from) {
-    if (process.env.NODE_ENV !== "production") {
-      // local development only: no email service configured
-      console.log(`\n[${purpose} login] code for ${email}: ${code} (valid ${CODE_MINUTES} min)\n`);
-      return true;
-    }
-    console.error("RESEND_API_KEY / EMAIL_FROM not set: cannot send login codes");
-    return false;
-  }
   const what = purpose === "admin" ? "admin login" : "login";
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from,
-      to: email,
-      subject: `Your ${BRAND.name} ${what} code: ${code}`,
-      text: `Your ${BRAND.name} ${what} code is ${code}.\n\nIt is valid for ${CODE_MINUTES} minutes. If you did not request it, you can ignore this email.`,
-    }),
+  if (!process.env.RESEND_API_KEY && process.env.NODE_ENV !== "production") {
+    console.log(`
+[${purpose} login] code for ${email}: ${code} (valid ${CODE_MINUTES} min)
+`);
+    return true;
+  }
+  return sendEmail({
+    to: email,
+    subject: `Your ${BRAND.name} ${what} code: ${code}`,
+    text: `Your ${BRAND.name} ${what} code is ${code}.
+
+It is valid for ${CODE_MINUTES} minutes. If you did not request it, you can ignore this email.`,
   });
-  if (!res.ok) console.error("Resend error", res.status, await res.text());
-  return res.ok;
 }
 
 /** Create and email a code (at most one per minute per address). */

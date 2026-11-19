@@ -1,10 +1,15 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { LEAD_STATUSES, leads, type LeadStatus } from "@/db/schema";
+import { accessRequests, grants, LEAD_STATUSES, leads, packs, REQUEST_STATUSES, students, type LeadStatus } from "@/db/schema";
+import { getPack } from "@/lib/access";
+import { BRAND } from "@/lib/brand";
+import { sendEmail, signature } from "@/lib/email";
+import { CATALOG_KINDS } from "@/lib/exam/catalog";
+import { SITE_URL } from "@/lib/site";
 import { logout, requestLoginCode, requireAdmin, verifyLoginCode } from "@/lib/auth";
 import { BATCHES_TAG, deleteBatch, getStoredBatch, saveBatch } from "@/lib/batch-store";
 import { fieldsToBatch, formDataToFields, type BatchFields } from "@/lib/batch-form";
@@ -79,4 +84,112 @@ export async function deleteBatchAction(fd: FormData) {
   if (slug) await deleteBatch(slug);
   updateTag(BATCHES_TAG);
   redirect("/admin/batches?deleted=1");
+}
+
+// ---------- access requests and grants ----------
+export async function setRequestStatusAction(fd: FormData) {
+  await requireAdmin();
+  const id = Number(fd.get("id"));
+  const status = String(fd.get("status"));
+  if (!Number.isInteger(id) || !(REQUEST_STATUSES as readonly string[]).includes(status)) return;
+  const db = await getDb();
+  await db.update(accessRequests).set({ status, updatedAt: new Date() }).where(eq(accessRequests.id, id));
+  redirect(String(fd.get("back") || "/admin/requests"));
+}
+
+export type GrantState = { error?: string; ok?: boolean };
+
+export async function grantAccessAction(prev: GrantState, fd: FormData): Promise<GrantState> {
+  const admin = await requireAdmin();
+  const studentId = Number(fd.get("studentId"));
+  const packSlug = String(fd.get("packSlug") ?? "");
+  const requestId = Number(fd.get("requestId") || 0);
+  const amountRaw = String(fd.get("amount") ?? "").replace(/[^\d]/g, "");
+  const validity = Number(fd.get("validityDays") || 0);
+  const db = await getDb();
+  const [student] = await db.select().from(students).where(eq(students.id, studentId));
+  const pack = await getPack(packSlug);
+  if (!student || !pack) return { error: "Choose a student and a pack." };
+  if (!Number.isInteger(validity) || validity < 1 || validity > 3650) return { error: "Access days must be between 1 and 3650." };
+
+  const expiresAt = new Date(Date.now() + validity * 24 * 3600 * 1000);
+  await db.insert(grants).values({
+    studentId,
+    packSlug,
+    expiresAt,
+    amountInr: amountRaw ? Number(amountRaw) : null,
+    paymentRef: String(fd.get("paymentRef") ?? "").trim().slice(0, 200) || null,
+    paymentDate: String(fd.get("paymentDate") ?? "").trim() || null,
+    note: String(fd.get("note") ?? "").trim().slice(0, 1000) || null,
+    grantedBy: admin,
+  });
+  // close the matching open request(s) for this pack
+  await db
+    .update(accessRequests)
+    .set({ status: "granted", updatedAt: new Date() })
+    .where(
+      requestId
+        ? eq(accessRequests.id, requestId)
+        : and(eq(accessRequests.studentId, studentId), eq(accessRequests.packSlug, packSlug), inArray(accessRequests.status, ["new", "contacted", "paid"])),
+    );
+  if (fd.get("notify") === "on") {
+    const until = expiresAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric" });
+    await sendEmail({
+      to: student.email,
+      subject: `Your ${pack.name} is active`,
+      text: [
+        `Hi ${(student.name ?? "").split(" ")[0] || "there"},`,
+        "",
+        `Your ${BRAND.name} ${pack.name} is now active until ${until}.`,
+        `Log in and open My tests to start: ${SITE_URL}/account`,
+        "",
+        "All the best for your preparation!",
+        signature(),
+      ].join("\n"),
+      replyTo: BRAND.contact.email || undefined,
+    });
+  }
+  redirect(`/admin/students/${studentId}?granted=1`);
+}
+
+export async function revokeGrantAction(fd: FormData) {
+  await requireAdmin();
+  const id = Number(fd.get("id"));
+  const studentId = Number(fd.get("studentId"));
+  if (!Number.isInteger(id)) return;
+  const db = await getDb();
+  await db.update(grants).set({ revokedAt: new Date() }).where(eq(grants.id, id));
+  redirect(`/admin/students/${studentId}`);
+}
+
+// ---------- packs ----------
+export type PackFormState = { error?: string };
+
+export async function savePackAction(prev: PackFormState, fd: FormData): Promise<PackFormState> {
+  await requireAdmin();
+  const original = String(fd.get("originalSlug") ?? "");
+  const slug = String(fd.get("slug") ?? "").trim().toLowerCase();
+  const name = String(fd.get("name") ?? "").trim();
+  const priceRaw = String(fd.get("priceInr") ?? "").replace(/[^\d]/g, "");
+  const validityDays = Number(fd.get("validityDays"));
+  const kinds = fd.getAll("kinds").map(String).filter((k) => (CATALOG_KINDS as readonly string[]).includes(k));
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return { error: "Short name (slug): lowercase letters, numbers and dashes." };
+  if (name.length < 2) return { error: "Name is required." };
+  if (!Number.isInteger(validityDays) || validityDays < 1) return { error: "Access days must be a whole number." };
+  if (!kinds.length) return { error: "Tick at least one test type the pack unlocks." };
+  const values = {
+    slug,
+    name,
+    description: String(fd.get("description") ?? "").trim(),
+    priceInr: priceRaw ? Number(priceRaw) : null,
+    validityDays,
+    kinds,
+    published: fd.get("published") === "on",
+    sort: Number(fd.get("sort") || 0) || 0,
+  };
+  const db = await getDb();
+  if (original && original !== slug) return { error: "The short name of an existing pack cannot be changed." };
+  if (!original && (await getPack(slug))) return { error: "A pack with this short name already exists." };
+  await db.insert(packs).values(values).onConflictDoUpdate({ target: packs.slug, set: values });
+  redirect("/admin/packs?saved=1");
 }

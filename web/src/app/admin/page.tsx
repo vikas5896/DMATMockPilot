@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AdminShell, Loading } from "@/components/admin/AdminShell";
 import { getDb } from "@/db";
-import { attempts, leads, students } from "@/db/schema";
+import { accessRequests, attempts, leads, students } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { listAllBatches } from "@/lib/batch-store";
 import { INTERESTS, type Interest } from "@/lib/leads";
@@ -28,14 +28,16 @@ async function Dashboard() {
     db.select().from(leads).orderBy(desc(leads.createdAt)).limit(5),
     listAllBatches(),
   ]);
-  const [[{ studentCount }], [{ testsDone }]] = await Promise.all([
+  const [[{ studentCount }], [{ testsDone }], [{ newRequests }]] = await Promise.all([
     db.select({ studentCount: count() }).from(students),
     db.select({ testsDone: count() }).from(attempts).where(eq(attempts.status, "completed")),
+    db.select({ newRequests: count() }).from(accessRequests).where(eq(accessRequests.status, "new")),
   ]);
   const regs = await db.select({ batch: leads.batch, n: count() }).from(leads).where(eq(leads.interest, "live-classes")).groupBy(leads.batch);
   const regsFor = (slug: string) => regs.find((r) => r.batch === slug)?.n ?? 0;
 
   const cards = [
+    { label: "New access requests", value: newRequests, href: "/admin/requests", strong: true },
     { label: "New enquiries", value: fresh, href: "/admin/enquiries?status=new", strong: true },
     { label: "All enquiries", value: total, href: "/admin/enquiries" },
     { label: "Students signed up", value: studentCount, href: "/admin/students", strong: true },
@@ -81,7 +83,7 @@ async function Dashboard() {
                     <span className="font-medium">{l.name}</span>{" "}
                     <span className="text-zinc-500">· {INTERESTS[l.interest as Interest] ?? l.interest}</span>
                   </span>
-                  <span className="text-xs text-zinc-500">{l.createdAt.toLocaleDateString("en-IN")}</span>
+                  <span className="text-xs text-zinc-500">{l.createdAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</span>
                 </li>
               ))}
             </ul>

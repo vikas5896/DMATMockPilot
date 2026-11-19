@@ -2,6 +2,7 @@
 
 import { currentStudent } from "@/lib/auth";
 import { saveAttemptData } from "@/lib/attempt-store";
+import { canAccess } from "@/lib/access";
 import { parseTestId } from "@/lib/exam/catalog";
 import type { Attempt } from "@/lib/exam/tests";
 
@@ -10,6 +11,6 @@ export async function saveAttemptAction(testId: string, data: Attempt): Promise<
   const me = await currentStudent();
   if (!me) return { ok: false, error: "Please log in again." };
   const test = parseTestId(testId);
-  if (!test || !test.free) return { ok: false, error: "This test is not available." };
+  if (!test || !(await canAccess(me.id, test))) return { ok: false, error: "This test is not available." };
   return saveAttemptData(me.id, testId, data);
 }
