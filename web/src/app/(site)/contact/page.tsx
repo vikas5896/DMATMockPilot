@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { BRAND, telHref } from "@/lib/brand";
+import { BRAND, telHref, waHref, WHATSAPP_GREETING } from "@/lib/brand";
 import { ContactForm } from "@/components/site/ContactForm";
 import { LeadForm } from "@/components/site/LeadForm";
 import { PageHero, Section } from "@/components/site/ui";
@@ -16,7 +16,7 @@ export default function ContactPage() {
   const details = [
     email && { label: "Email", value: email, href: `mailto:${email}` },
     phone && { label: "Phone", value: phone, href: telHref(phone) },
-    whatsapp && { label: "WhatsApp", value: whatsapp, href: `https://wa.me/${whatsapp.replace(/\D/g, "")}` },
+    whatsapp && { label: "WhatsApp", value: whatsapp, href: waHref(whatsapp, WHATSAPP_GREETING) },
     city && { label: "Office", value: city },
   ].filter(Boolean) as { label: string; value: string; href?: string }[];
 

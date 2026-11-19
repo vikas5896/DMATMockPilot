@@ -11,10 +11,16 @@ export const BRAND = {
   contact: {
     email: "info@dmatmockprep.com",
     phone: "+91 86248 59052",
-    whatsapp: "",
+    whatsapp: "+91 86248 59052",
     city: "",
   },
 };
 
 /** "+91 86248 59052" → "+918624859052" for tel: links */
 export const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
+
+/** WhatsApp chat link, optionally with a ready-written first message. */
+export const waHref = (number: string, text?: string) =>
+  `https://wa.me/${number.replace(/\D/g, "")}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
+
+export const WHATSAPP_GREETING = `Hi ${BRAND.name}, I have a question about the dMAT.`;

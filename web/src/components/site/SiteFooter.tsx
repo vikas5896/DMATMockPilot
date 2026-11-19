@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BRAND, telHref } from "@/lib/brand";
+import { BRAND, telHref, waHref, WHATSAPP_GREETING } from "@/lib/brand";
 
 const COLUMNS = [
   {
@@ -28,7 +28,7 @@ const COLUMNS = [
 ];
 
 export function SiteFooter() {
-  const { email, phone } = BRAND.contact;
+  const { email, phone, whatsapp } = BRAND.contact;
   return (
     <footer className="mt-auto border-t border-zinc-200 bg-zinc-50">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
@@ -39,6 +39,16 @@ export function SiteFooter() {
             <p className="mt-3 space-y-1 text-sm text-zinc-700">
               {email && <a href={`mailto:${email}`} className="block hover:text-brand">{email}</a>}
               {phone && <a href={telHref(phone)} className="block hover:text-brand">{phone}</a>}
+              {whatsapp && (
+                <a
+                  href={waHref(whatsapp, WHATSAPP_GREETING)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block font-medium text-emerald-700 hover:text-emerald-800"
+                >
+                  Chat on WhatsApp
+                </a>
+              )}
             </p>
           )}
         </div>
