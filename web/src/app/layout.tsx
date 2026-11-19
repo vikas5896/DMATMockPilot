@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} – ${BRAND.tagline}`,
+  title: { default: `${BRAND.name} – ${BRAND.tagline}`, template: `%s | ${BRAND.name}` },
   description:
     "Timed mock tests in the real dMAT format: Figure Sequences, Mathematical Equations and Latin Squares, with unlimited practice and worked solutions.",
 };

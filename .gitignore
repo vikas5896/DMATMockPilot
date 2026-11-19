@@ -2,3 +2,6 @@
 *.pdf
 
 .claude/settings.local.json
+
+# website enquiries saved locally (personal data, never commit)
+web/data/

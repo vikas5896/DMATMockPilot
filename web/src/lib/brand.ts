@@ -4,5 +4,12 @@
  */
 export const BRAND = {
   name: "MockPilot",
-  tagline: "Realistic mock tests for the dMAT",
+  tagline: "dMAT preparation and study in Germany",
+  /** Fill these in before going public. Empty values are hidden on the site. */
+  contact: {
+    email: "",
+    phone: "",
+    whatsapp: "",
+    city: "",
+  },
 };
