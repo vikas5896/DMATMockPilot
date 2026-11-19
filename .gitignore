@@ -1,0 +1,4 @@
+# Official g.a.s.t. material is copyrighted: keep it local, never commit or publish it
+*.pdf
+
+.claude/settings.local.json
