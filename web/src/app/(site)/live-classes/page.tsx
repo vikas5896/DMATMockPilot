@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BATCHES } from "@/content/site/batches";
+import { getPublicBatches } from "@/lib/batch-store";
 import { BatchCard } from "@/components/site/BatchCard";
 import { LeadForm } from "@/components/site/LeadForm";
 import { Faq, PageHero, Section } from "@/components/site/ui";
@@ -16,7 +16,8 @@ const FORMAT = [
   ["Small batches", "Limited seats so that everyone gets their questions answered."],
 ];
 
-export default function LiveClassesPage() {
+export default async function LiveClassesPage() {
+  const batches = await getPublicBatches();
   return (
     <>
       <PageHero
@@ -27,7 +28,7 @@ export default function LiveClassesPage() {
 
       <Section title="Upcoming batches" intro="Register to reserve your seat. We will contact you with the joining details and fee.">
         <div className="grid gap-6 md:grid-cols-2">
-          {BATCHES.map((b) => (
+          {batches.map((b) => (
             <BatchCard key={b.slug} b={b} />
           ))}
         </div>

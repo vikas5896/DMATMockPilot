@@ -2,19 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { BATCHES, batchBySlug, formatRange } from "@/content/site/batches";
+import { formatRange } from "@/content/site/batches";
+import { getPublicBatch, getPublicBatches } from "@/lib/batch-store";
 import { statusBadge } from "@/components/site/BatchCard";
 import { LeadForm } from "@/components/site/LeadForm";
 import { Section } from "@/components/site/ui";
 
 type Props = { params: Promise<{ batch: string }> };
 
-export function generateStaticParams() {
-  return BATCHES.map((b) => ({ batch: b.slug }));
+export async function generateStaticParams() {
+  return (await getPublicBatches()).map((b) => ({ batch: b.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const b = batchBySlug((await params).batch);
+  const b = await getPublicBatch((await params).batch);
   return b ? { title: `${b.title} – live class`, description: b.summary } : {};
 }
 
@@ -27,7 +28,7 @@ export default function BatchPage({ params }: Props) {
 }
 
 async function BatchContent({ params }: Props) {
-  const b = batchBySlug((await params).batch);
+  const b = await getPublicBatch((await params).batch);
   if (!b) notFound();
 
   const facts: [string, string][] = [

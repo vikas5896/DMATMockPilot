@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { BATCHES, formatRange } from "@/content/site/batches";
+import { formatRange } from "@/content/site/batches";
+import { getPublicBatches } from "@/lib/batch-store";
 import { Badge, ButtonLink, PageHero, Section } from "@/components/site/ui";
 
 const PILLARS = [
@@ -26,8 +27,8 @@ const PILLARS = [
   },
 ];
 
-export default function Home() {
-  const upcoming = BATCHES.filter((b) => b.status !== "full").slice(0, 3);
+export default async function Home() {
+  const upcoming = (await getPublicBatches()).filter((b) => b.status !== "full").slice(0, 3);
   return (
     <>
       <PageHero
