@@ -11,6 +11,8 @@ const PAGES: [path: string, priority: number, freq: "daily" | "weekly" | "monthl
   ["/about", 0.4, "yearly"],
   ["/contact", 0.5, "yearly"],
   ["/privacy", 0.2, "yearly"],
+  ["/terms", 0.2, "yearly"],
+  ["/refund-policy", 0.2, "yearly"],
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -140,3 +140,23 @@ export type AttemptRow = typeof attempts.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export const LEAD_STATUSES = ["new", "contacted", "enrolled", "closed"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+/** Online payments through Razorpay. One row per Razorpay order; a paid order creates a grant once. */
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  orderId: text("order_id").notNull().unique(), // Razorpay order_…
+  paymentId: text("payment_id"), // Razorpay pay_…
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => students.id, { onDelete: "cascade" }),
+  packSlug: text("pack_slug").notNull(),
+  promoCode: text("promo_code"),
+  amountInr: integer("amount_inr").notNull(),
+  /** created → paid / failed */
+  status: text("status").notNull().default("created"),
+  grantId: integer("grant_id"),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+});
+export type Payment = typeof payments.$inferSelect;

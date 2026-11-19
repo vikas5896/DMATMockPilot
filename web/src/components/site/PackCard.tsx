@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { checkPromoAction, requestAccessAction } from "@/app/(site)/packs/actions";
+import {
+  checkPromoAction,
+  confirmPaymentAction,
+  createOrderAction,
+  paymentFailedAction,
+  requestAccessAction,
+} from "@/app/(site)/packs/actions";
 import { BRAND, waHref } from "@/lib/brand";
 import { PROMO_KEY } from "./PromoCatcher";
 
@@ -19,6 +26,26 @@ const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 type Applied = { code: string; percentOff: number; finalPriceInr: number };
 
+type RazorpayResponse = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
+type RazorpayInstance = { open(): void; on(event: "payment.failed", cb: (r: { error?: { description?: string } }) => void): void };
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => RazorpayInstance;
+  }
+}
+
+/** Load Razorpay's checkout script once, only when someone clicks Pay. */
+function loadCheckout(): Promise<boolean> {
+  if (window.Razorpay) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(!!window.Razorpay);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
 /** A pack with a promo code field and a "Request access" button: we then contact the student for payment. */
 export function PackCard({
   pack,
@@ -27,6 +54,7 @@ export function PackCard({
   owned,
   from,
   highlight,
+  payOnline,
 }: {
   pack: PackInfo;
   signedIn: boolean;
@@ -34,8 +62,15 @@ export function PackCard({
   owned?: string; // expiry date text when the student already has it
   from: string;
   highlight?: boolean;
+  /** Razorpay is set up: show "Pay now" (Request access stays as the other option) */
+  payOnline?: boolean;
 }) {
-  const [state, setState] = useState<"idle" | "done" | "already" | "error">(requested ? "already" : "idle");
+  const router = useRouter();
+  const [state, setState] = useState<"idle" | "done" | "already" | "error">(requested && !payOnline ? "already" : "idle");
+  const [paid, setPaid] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [showRequest, setShowRequest] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [codeInput, setCodeInput] = useState("");
@@ -96,6 +131,51 @@ export function PackCard({
     });
 
   const finalPrice = applied ? applied.finalPriceInr : pack.priceInr;
+  const canPay = !!payOnline && finalPrice != null && finalPrice >= 1;
+
+  const pay = async () => {
+    setPayError(null);
+    setPaying(true);
+    try {
+      const [order, loaded] = await Promise.all([createOrderAction(pack.slug, applied?.code), loadCheckout()]);
+      if (!order.ok) throw new Error(order.error);
+      if (!loaded || !window.Razorpay) throw new Error("Could not load the payment window. Check your internet connection and try again.");
+      const rzp = new window.Razorpay({
+        key: order.keyId,
+        order_id: order.orderId,
+        amount: order.amountPaise,
+        currency: "INR",
+        name: BRAND.name,
+        description: order.packName + (applied ? ` (code ${applied.code})` : ""),
+        prefill: order.prefill,
+        theme: { color: "#8c0a55" },
+        handler: async (r: RazorpayResponse) => {
+          setPaying(true);
+          const c = await confirmPaymentAction(r.razorpay_order_id, r.razorpay_payment_id, r.razorpay_signature).catch(() => ({
+            ok: false,
+            error: "Please message us on WhatsApp with your payment ID.",
+          }));
+          setPaying(false);
+          if (c.ok) {
+            setPaid(true);
+            try {
+              localStorage.removeItem(PROMO_KEY);
+            } catch {}
+            router.refresh();
+          } else setPayError(`${c.error} (Payment ID: ${r.razorpay_payment_id})`);
+        },
+        modal: { ondismiss: () => setPaying(false) },
+      });
+      rzp.on("payment.failed", (r) => {
+        void paymentFailedAction(order.orderId, r.error?.description ?? "failed");
+        setPayError(r.error?.description ? `Payment failed: ${r.error.description}` : "Payment failed. Please try again.");
+      });
+      rzp.open();
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      setPaying(false);
+    }
+  };
 
   return (
     <div className={`flex flex-col rounded-xl border-2 bg-white p-6 ${highlight ? "border-brand" : "border-zinc-200"}`}>
@@ -116,7 +196,7 @@ export function PackCard({
       <p className="mt-4 flex-1 text-zinc-700">{pack.description}</p>
 
       {/* promo code */}
-      {!owned && pack.priceInr != null && state !== "done" && state !== "already" && (
+      {!owned && !paid && pack.priceInr != null && state !== "done" && state !== "already" && (
         <div className="mt-4">
           {applied ? (
             <p className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -157,7 +237,15 @@ export function PackCard({
       )}
 
       <div className="mt-5">
-        {owned ? (
+        {paid ? (
+          <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900" role="status">
+            <p className="font-semibold">✓ Payment successful. Your {pack.name} is active!</p>
+            <p className="mt-1">We have emailed you the details.</p>
+            <Link href="/account" className="mt-2 inline-block font-semibold text-emerald-700 underline">
+              Go to My tests →
+            </Link>
+          </div>
+        ) : owned ? (
           <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
             ✓ You have this pack (until {owned}).
           </p>
@@ -167,7 +255,7 @@ export function PackCard({
               href={`/login?next=${encodeURIComponent(from)}`}
               className="block rounded-md bg-brand px-4 py-3 text-center font-semibold text-white hover:bg-brand-dark"
             >
-              Sign up to request access
+              {payOnline ? "Sign up to buy" : "Sign up to request access"}
             </Link>
             {applied && <p className="mt-2 text-xs text-zinc-500">Your code is saved and applied after you sign up.</p>}
           </>
@@ -193,6 +281,28 @@ export function PackCard({
               </a>
             )}
           </div>
+        ) : canPay && !showRequest ? (
+          <>
+            {payError && (
+              <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                {payError}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={pay}
+              disabled={paying || checking}
+              className="w-full rounded-md bg-brand px-4 py-3 font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+            >
+              {paying ? "Opening payment…" : `Pay ${rupees(finalPrice!)} now`}
+            </button>
+            <p className="mt-2 text-xs text-zinc-500">
+              UPI, cards or netbanking via Razorpay. Your tests unlock right after payment.{" "}
+              <button type="button" onClick={() => setShowRequest(true)} className="underline">
+                Prefer bank transfer?
+              </button>
+            </p>
+          </>
         ) : (
           <>
             <textarea
@@ -214,7 +324,18 @@ export function PackCard({
             >
               {pending ? "Sending…" : finalPrice != null ? `Request access · ${rupees(finalPrice)}` : "Request access"}
             </button>
-            <p className="mt-2 text-xs text-zinc-500">No online payment yet: we contact you with the payment details.</p>
+            <p className="mt-2 text-xs text-zinc-500">
+              {canPay ? (
+                <>
+                  We contact you with the bank details.{" "}
+                  <button type="button" onClick={() => setShowRequest(false)} className="underline">
+                    Pay online instead
+                  </button>
+                </>
+              ) : (
+                "We contact you with the payment details."
+              )}
+            </p>
           </>
         )}
       </div>

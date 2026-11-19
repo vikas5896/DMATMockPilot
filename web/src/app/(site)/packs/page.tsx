@@ -4,6 +4,7 @@ import { PackCard } from "@/components/site/PackCard";
 import { Faq, PageHero, Section } from "@/components/site/ui";
 import { activeGrants, listPacks, openRequests } from "@/lib/access";
 import { currentStudent } from "@/lib/auth";
+import { paymentsEnabled } from "@/lib/payments";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -12,7 +13,14 @@ export const metadata = pageMetadata({
   path: "/packs",
 });
 
-const STEPS = [
+const ONLINE_STEPS = [
+  ["Choose a pack", "Sign up for free, pick a pack and apply your promo code if you have one."],
+  ["Pay online", "Pay securely with UPI, card or netbanking through Razorpay."],
+  ["Tests unlock instantly", "Your tests open in My tests right after the payment. We email you a confirmation."],
+  ["Practise and improve", "Take timed tests, check your scores and learn from the step-by-step solutions."],
+];
+
+const REQUEST_STEPS = [
   ["Request a pack", "Choose a pack and click Request access (free account needed)."],
   ["We contact you", "On WhatsApp or by phone, usually within a few hours, with the payment details."],
   ["Pay by UPI or bank transfer", "Pay the amount we share with you; we confirm the payment."],
@@ -20,6 +28,8 @@ const STEPS = [
 ];
 
 export default function PacksPage() {
+  const online = paymentsEnabled();
+  const steps = online ? ONLINE_STEPS : REQUEST_STEPS;
   return (
     <>
       <PageHero
@@ -34,7 +44,7 @@ export default function PacksPage() {
       </Section>
       <Section tone="soft" title="How it works">
         <ol className="grid gap-6 md:grid-cols-4">
-          {STEPS.map(([h, p], i) => (
+          {steps.map(([h, p], i) => (
             <li key={h} className="rounded-xl border border-zinc-200 bg-white p-5">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
                 {i + 1}
@@ -48,9 +58,18 @@ export default function PacksPage() {
       <Section title="Questions">
         <Faq
           items={[
+            online
+              ? {
+                  q: "Can I pay without UPI or a card?",
+                  a: "Yes. Click \"Prefer bank transfer?\" on a pack and request access: we contact you on WhatsApp or by phone with the bank details and unlock the pack after your payment.",
+                }
+              : {
+                  q: "Why can't I pay online?",
+                  a: "Online payment is coming soon. Until then we confirm every pack personally, which also lets us answer your questions about the dMAT and your preparation.",
+                },
             {
-              q: "Why can't I pay online?",
-              a: "Online payment is coming soon. Until then we confirm every pack personally, which also lets us answer your questions about the dMAT and your preparation.",
+              q: "Can I get a refund?",
+              a: "Yes, within 7 days if you have not started any test from the pack. See our refund policy for details.",
             },
             {
               q: "How long do I keep access?",
@@ -86,6 +105,7 @@ async function PackList() {
             owned={g ? fmt(g.expiresAt) : undefined}
             from="/packs"
             highlight={i === list.length - 1}
+            payOnline={paymentsEnabled()}
           />
         );
       })}

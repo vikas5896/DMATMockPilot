@@ -6,6 +6,7 @@ import { BRAND } from "@/lib/brand";
 const NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/requests", label: "Requests" },
+  { href: "/admin/payments", label: "Payments" },
   { href: "/admin/students", label: "Students" },
   { href: "/admin/enquiries", label: "Enquiries" },
   { href: "/admin/packs", label: "Packs" },
@@ -29,11 +30,11 @@ export function AdminShell({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="bg-brand text-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
           <Link href="/admin" className="font-bold">
             {BRAND.name} <span className="font-normal text-white/70">Admin</span>
           </Link>
-          <nav className="flex gap-1">
+          <nav className="flex flex-wrap gap-1">
             {NAV.map((n) => (
               <Link
                 key={n.href}

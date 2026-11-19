@@ -5,6 +5,7 @@ import { LockedTest } from "@/components/exam/LockedTest";
 import { currentStudent } from "@/lib/auth";
 import { getOrCreateAttempt } from "@/lib/attempt-store";
 import { canAccess, listPacks, openRequests, packCovers } from "@/lib/access";
+import { paymentsEnabled } from "@/lib/payments";
 import { parseTestId } from "@/lib/exam/catalog";
 import { isTestKind, type Attempt } from "@/lib/exam/tests";
 
@@ -39,6 +40,7 @@ async function TestLoader({ params }: Props) {
         test={test}
         packs={packList.filter((p) => packCovers(p, test.kind))}
         requested={open.map((r) => r.packSlug)}
+        payOnline={paymentsEnabled()}
       />
     );
   }
