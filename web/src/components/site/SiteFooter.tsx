@@ -35,6 +35,22 @@ export function SiteFooter() {
         <div>
           <p className="text-lg font-bold text-brand">{BRAND.name}</p>
           <p className="mt-2 max-w-xs text-sm text-zinc-600">{BRAND.tagline}.</p>
+          {BRAND.social.instagram && (
+            <a
+              href={BRAND.social.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${BRAND.name} on Instagram`}
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-brand"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+              </svg>
+              @dmatmockprep
+            </a>
+          )}
           {(email || phone) && (
             <p className="mt-3 space-y-1 text-sm text-zinc-700">
               {email && <a href={`mailto:${email}`} className="block hover:text-brand">{email}</a>}

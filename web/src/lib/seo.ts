@@ -9,7 +9,7 @@ export const BRAND_ALIASES = ["DMAT Mock Prep", "dMAT Mock Prep", "dmatmockprep"
  * Social profiles (Instagram, YouTube, LinkedIn, Facebook…). Add the full URLs once they exist:
  * Google uses them to connect the brand's profiles to the website.
  */
-export const SOCIAL_PROFILES: string[] = [];
+export const SOCIAL_PROFILES: string[] = Object.values(BRAND.social).filter(Boolean);
 
 /** Per-page metadata with a canonical address and matching link-preview texts. */
 export function pageMetadata({

@@ -14,6 +14,12 @@ export const BRAND = {
     whatsapp: "+91 86248 59052",
     city: "",
   },
+  /** Social profiles shown in the footer (empty = hidden) */
+  social: {
+    instagram: "https://www.instagram.com/dmatmockprep/",
+    youtube: "",
+    linkedin: "",
+  },
 };
 
 /** "+91 86248 59052" → "+918624859052" for tel: links */
