@@ -1,13 +1,15 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { JOURNEY, SERVICES } from "@/content/site/germany";
 import { LeadForm } from "@/components/site/LeadForm";
 import { Badge, Faq, PageHero, Section } from "@/components/site/ui";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Study in Germany",
-  description: "Guidance for Indian students applying for a Master's in Germany: shortlisting, APS, dMAT, applications, blocked account and visa.",
-};
+export const metadata = pageMetadata({
+  title: "Study in Germany – Master's Guidance for Indian Students",
+  description:
+    "Guidance for Indian students applying for a Master's in Germany: university shortlisting, APS, dMAT, applications, blocked account and student visa.",
+  path: "/study-in-germany",
+});
 
 export default function StudyInGermanyPage() {
   return (

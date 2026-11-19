@@ -7,6 +7,10 @@ import { getPublicBatch, getPublicBatches } from "@/lib/batch-store";
 import { statusBadge } from "@/components/site/BatchCard";
 import { LeadForm } from "@/components/site/LeadForm";
 import { Section } from "@/components/site/ui";
+import { JsonLd } from "@/components/site/JsonLd";
+import { BRAND } from "@/lib/brand";
+import { pageMetadata } from "@/lib/seo";
+import { SITE_URL } from "@/lib/site";
 
 type Props = { params: Promise<{ batch: string }> };
 
@@ -16,7 +20,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const b = await getPublicBatch((await params).batch);
-  return b ? { title: `${b.title} – live class`, description: b.summary } : {};
+  return b
+    ? pageMetadata({ title: `${b.title} – Live dMAT Class`, description: b.summary, path: `/live-classes/${b.slug}` })
+    : {};
 }
 
 export default function BatchPage({ params }: Props) {
@@ -42,6 +48,25 @@ async function BatchContent({ params }: Props) {
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Course",
+          name: b.title,
+          description: b.summary,
+          url: `${SITE_URL}/live-classes/${b.slug}`,
+          inLanguage: "en",
+          provider: { "@type": "EducationalOrganization", "@id": `${SITE_URL}/#organization`, name: BRAND.name, url: `${SITE_URL}/` },
+          hasCourseInstance: {
+            "@type": "CourseInstance",
+            courseMode: "Online",
+            startDate: b.start,
+            endDate: b.end,
+            courseSchedule: { "@type": "Schedule", repeatFrequency: "Weekly", description: `${b.days}, ${b.time}` },
+            ...(b.instructor ? { instructor: { "@type": "Person", name: b.instructor } } : {}),
+          },
+        }}
+      />
       <section className="bg-brand text-white">
         <div className="mx-auto max-w-6xl px-6 pb-12 pt-8">
           <Link href="/live-classes" className="text-sm text-white/75 hover:text-white">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { JsonLd } from "./JsonLd";
 
 export function PageHero({
   eyebrow,
@@ -82,6 +83,14 @@ export function Badge({ children, tone = "brand" }: { children: ReactNode; tone?
 
 export function Faq({ items }: { items: { q: string; a: string }[] }) {
   return (
+    <>
+    <JsonLd
+      data={{
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: items.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+      }}
+    />
     <div className="divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white">
       {items.map((f) => (
         <details key={f.q} className="group px-5 py-4">
@@ -95,5 +104,6 @@ export function Faq({ items }: { items: { q: string; a: string }[] }) {
         </details>
       ))}
     </div>
+    </>
   );
 }

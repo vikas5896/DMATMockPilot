@@ -2,6 +2,15 @@ import Link from "next/link";
 import { formatRange } from "@/content/site/batches";
 import { getPublicBatches } from "@/lib/batch-store";
 import { Badge, ButtonLink, PageHero, Section } from "@/components/site/ui";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+  title: "DMAT Mock Prep – dMAT Mock Tests, Live Classes & Study in Germany",
+  description:
+    "DMAT Mock Prep helps you prepare for the dMAT (digital Master Test): free mock tests in the real exam format, live online classes and guidance for a Master's in Germany.",
+  path: "/",
+  absoluteTitle: true,
+});
 
 const PILLARS = [
   {
@@ -32,7 +41,7 @@ export default async function Home() {
   return (
     <>
       <PageHero
-        eyebrow="dMAT preparation · Study in Germany"
+        eyebrow="DMAT Mock Prep · dMAT preparation and study in Germany"
         title="Your path to a Master's in Germany starts with the dMAT."
         intro="Practise with realistic mock tests, learn in live classes, and get guidance on every step of studying in Germany."
       >

@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 import { ButtonLink, PageHero, Section } from "@/components/site/ui";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "About us",
+export const metadata = pageMetadata({
+  title: "About Us",
   description: `${BRAND.name} helps Indian students prepare for the dMAT and plan their Master's in Germany.`,
-};
+  path: "/about",
+});
 
 const VALUES = [
   ["Realistic practice", "Practice should feel like the real exam: same layout, same timing, same pressure."],

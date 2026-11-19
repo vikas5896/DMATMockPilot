@@ -1,10 +1,12 @@
-import type { Metadata } from "next";
 import { ButtonLink, PageHero, Section } from "@/components/site/ui";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "dMAT guide: format, rules and preparation",
-  description: "What the digital Master Test (dMAT) is, who needs it for APS India, the exam format, rules and how to prepare.",
-};
+export const metadata = pageMetadata({
+  title: "dMAT Guide – Exam Format, Rules and Preparation",
+  description:
+    "What the digital Master Test (dMAT) is, who needs it for APS India, the Core and Subject Module format, timing rules and how to prepare.",
+  path: "/dmat-guide",
+});
 
 const FORMAT = [
   ["Core Module", "Figure Sequences", "20 tasks", "25 min", "Continue a series of 4×4 pictures: choose the 5th and 6th"],

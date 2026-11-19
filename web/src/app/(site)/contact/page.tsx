@@ -1,14 +1,15 @@
-import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BRAND } from "@/lib/brand";
 import { ContactForm } from "@/components/site/ContactForm";
 import { LeadForm } from "@/components/site/LeadForm";
 import { PageHero, Section } from "@/components/site/ui";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Contact us",
-  description: "Questions about the dMAT, live classes or studying in Germany? Send us a message.",
-};
+export const metadata = pageMetadata({
+  title: "Contact Us",
+  description: "Questions about the dMAT, live classes or studying in Germany? Send DMAT Mock Prep a message.",
+  path: "/contact",
+});
 
 export default function ContactPage() {
   const { email, phone, whatsapp, city } = BRAND.contact;

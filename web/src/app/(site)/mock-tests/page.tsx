@@ -1,13 +1,15 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { SUBJECT_MODULE } from "@/lib/exam/blueprint";
 import { TESTS, type TestKind } from "@/lib/exam/tests";
 import { Badge, ButtonLink, Faq, PageHero, Section } from "@/components/site/ui";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "dMAT mock tests",
-  description: "Free full-length dMAT mock tests and section practice in the real exam format, with worked solutions.",
-};
+export const metadata = pageMetadata({
+  title: "Free dMAT Mock Tests – Full Exam & Section Practice",
+  description:
+    "Free full-length dMAT mock tests with strict timers: Figure Sequences, Mathematical Equations, Latin Squares and the General Academic Module, with step-by-step solutions.",
+  path: "/mock-tests",
+});
 
 const SECTIONALS: TestKind[] = ["subject", "figure-sequences", "equations", "latin-squares"];
 

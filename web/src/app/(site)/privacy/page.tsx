@@ -1,8 +1,12 @@
-import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 import { PageHero, Section } from "@/components/site/ui";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Privacy policy" };
+export const metadata = pageMetadata({
+  title: "Privacy Policy",
+  description: "How DMAT Mock Prep handles your personal data.",
+  path: "/privacy",
+});
 
 /**
  * DRAFT. Have this reviewed by a legal advisor before launch (India's Digital Personal Data Protection Act, 2023),

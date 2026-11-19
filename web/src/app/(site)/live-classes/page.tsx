@@ -1,13 +1,15 @@
-import type { Metadata } from "next";
 import { getPublicBatches } from "@/lib/batch-store";
 import { BatchCard } from "@/components/site/BatchCard";
 import { LeadForm } from "@/components/site/LeadForm";
 import { Faq, PageHero, Section } from "@/components/site/ui";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Live dMAT classes",
-  description: "Live online dMAT preparation batches for the January and March sittings, with recordings and weekly mock reviews.",
-};
+export const metadata = pageMetadata({
+  title: "Live dMAT Classes – Online Batches",
+  description:
+    "Live online dMAT preparation batches with recordings, timed drills and weekly mock reviews. Choose the batch for your exam sitting.",
+  path: "/live-classes",
+});
 
 const FORMAT = [
   ["Live and online", "Interactive sessions on video call in Indian evening and weekend slots. Ask questions as we go."],
