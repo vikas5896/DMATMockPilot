@@ -8,6 +8,7 @@ import { accessRequests, grants, LEAD_STATUSES, leads, packs, promoCodes, REQUES
 import { getPack, listPacks } from "@/lib/access";
 import { normalizeCode } from "@/lib/pricing";
 import { getPromo } from "@/lib/promo";
+import { testRazorpayConnection } from "@/lib/payments";
 import { BRAND } from "@/lib/brand";
 import { sendEmail, signature } from "@/lib/email";
 import { CATALOG_KINDS } from "@/lib/exam/catalog";
@@ -226,4 +227,11 @@ export async function savePromoAction(prev: PromoFormState, fd: FormData): Promi
   const db = await getDb();
   await db.insert(promoCodes).values(values).onConflictDoUpdate({ target: promoCodes.code, set: values });
   redirect(`/admin/promo-codes?saved=${encodeURIComponent(code)}`);
+}
+
+// ---------- Razorpay key check ----------
+export async function testRazorpayAction() {
+  await requireAdmin();
+  const r = await testRazorpayConnection();
+  redirect(`/admin/payments?check=${r.ok ? "ok" : "fail"}&msg=${encodeURIComponent(r.message)}`);
 }

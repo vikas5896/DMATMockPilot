@@ -6,7 +6,8 @@ import { getDb } from "@/db";
 import { payments, students } from "@/db/schema";
 import { listPacks } from "@/lib/access";
 import { requireAdmin } from "@/lib/auth";
-import { paymentsEnabled, razorpayKeyId } from "@/lib/payments";
+import { keyReport, paymentsEnabled, razorpayKeyId } from "@/lib/payments";
+import { testRazorpayAction } from "@/app/admin/actions";
 
 export const metadata = { title: "Payments" };
 type SP = Promise<{ [k: string]: string | string[] | undefined }>;
@@ -75,6 +76,7 @@ async function Payments({ searchParams }: { searchParams: SP }) {
           ))}
         </span>
       </div>
+      <KeyCheck check={typeof sp.check === "string" ? sp.check : undefined} msg={typeof sp.msg === "string" ? sp.msg : undefined} />
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
@@ -133,5 +135,41 @@ async function Payments({ searchParams }: { searchParams: SP }) {
         then revoke the pack on the student&apos;s page.
       </p>
     </AdminShell>
+  );
+}
+
+/** Shows what the server sees of the Razorpay keys (never the secrets) and tests them with Razorpay. */
+function KeyCheck({ check, msg }: { check?: string; msg?: string }) {
+  const k = keyReport();
+  const row = (label: string, value: string, good: boolean, hint?: string) => (
+    <li className="flex flex-wrap gap-x-2">
+      <span className={good ? "text-emerald-700" : "text-red-700"}>{good ? "✓" : "✗"}</span>
+      <span className="font-medium">{label}:</span>
+      <span className="font-mono">{value}</span>
+      {!good && hint && <span className="text-zinc-500">({hint})</span>}
+    </li>
+  );
+  return (
+    <details open={check === "fail" || !k.idLooksRight || !k.secretLooksRight} className="mb-5 rounded-xl border border-zinc-200 bg-white p-4 text-sm">
+      <summary className="cursor-pointer font-semibold">Razorpay key check</summary>
+      <ul className="mt-3 space-y-1">
+        {row("RAZORPAY_KEY_ID", k.idShown ? `${k.idShown} (${k.idLength} characters, ${k.mode} mode)` : "missing", k.idLooksRight, "should be rzp_live_ or rzp_test_ plus 14 letters/numbers, 23 characters in total")}
+        {row("RAZORPAY_KEY_SECRET", k.secretLength ? `set, ${k.secretLength} characters` : "missing", k.secretLooksRight, "should be only letters and numbers, usually 24 characters")}
+        {row("RAZORPAY_WEBHOOK_SECRET", k.webhookSet ? "set" : "missing", k.webhookSet, "needed for the webhook backup")}
+      </ul>
+      <form action={testRazorpayAction} className="mt-3 flex flex-wrap items-center gap-3">
+        <button className="rounded-md border border-brand px-4 py-1.5 font-semibold text-brand hover:bg-brand-soft">Test connection</button>
+        {check && (
+          <span className={check === "ok" ? "font-medium text-emerald-700" : "font-medium text-red-700"}>
+            {check === "ok" ? "✓ " : "✗ "}
+            {msg}
+          </span>
+        )}
+      </form>
+      <p className="mt-2 text-xs text-zinc-500">
+        &quot;401: Authentication failed&quot; means the Key ID and Key Secret are not a pair: copy both from the same key in
+        Razorpay (same mode), update both in Vercel and redeploy.
+      </p>
+    </details>
   );
 }

@@ -6,6 +6,7 @@ import { getPack } from "@/lib/access";
 import { BRAND } from "@/lib/brand";
 import { notifyAdmins, sendEmail, signature } from "@/lib/email";
 import { SITE_URL } from "@/lib/site";
+import { cleanKey, describeKeys } from "@/lib/razorpay-keys";
 
 /**
  * Razorpay keys (set in Vercel → Environment Variables; test keys locally in .env.local):
@@ -13,10 +14,28 @@ import { SITE_URL } from "@/lib/site";
  *   RAZORPAY_KEY_SECRET
  *   RAZORPAY_WEBHOOK_SECRET  the secret you type when adding the webhook in the Razorpay dashboard
  */
-export const razorpayKeyId = () => process.env.RAZORPAY_KEY_ID?.trim() ?? "";
-export const razorpayKeySecret = () => process.env.RAZORPAY_KEY_SECRET?.trim() ?? "";
-export const razorpayWebhookSecret = () => process.env.RAZORPAY_WEBHOOK_SECRET?.trim() ?? "";
+export const razorpayKeyId = () => cleanKey(process.env.RAZORPAY_KEY_ID, "RAZORPAY_KEY_ID");
+export const razorpayKeySecret = () => cleanKey(process.env.RAZORPAY_KEY_SECRET, "RAZORPAY_KEY_SECRET");
+export const razorpayWebhookSecret = () => cleanKey(process.env.RAZORPAY_WEBHOOK_SECRET, "RAZORPAY_WEBHOOK_SECRET");
 export const paymentsEnabled = () => !!(razorpayKeyId() && razorpayKeySecret());
+
+export const keyReport = () => describeKeys(razorpayKeyId(), razorpayKeySecret(), razorpayWebhookSecret());
+
+/** Ask Razorpay whether the Key ID + Key Secret pair is accepted (reads one order; changes nothing). */
+export async function testRazorpayConnection(): Promise<{ ok: boolean; message: string }> {
+  if (!paymentsEnabled()) return { ok: false, message: "RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is missing." };
+  try {
+    const res = await fetch("https://api.razorpay.com/v1/orders?count=1", {
+      headers: { Authorization: `Basic ${Buffer.from(`${razorpayKeyId()}:${razorpayKeySecret()}`).toString("base64")}` },
+      cache: "no-store",
+    });
+    if (res.ok) return { ok: true, message: "Razorpay accepted the keys." };
+    const data = (await res.json().catch(() => ({}))) as { error?: { description?: string } };
+    return { ok: false, message: `Razorpay answered ${res.status}: ${data.error?.description ?? "error"}` };
+  } catch {
+    return { ok: false, message: "Could not reach Razorpay." };
+  }
+}
 
 /** Create a Razorpay order (amount in paise). */
 export async function createRazorpayOrder(amountInr: number, receipt: string, notes: Record<string, string>) {
