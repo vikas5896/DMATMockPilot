@@ -7,11 +7,14 @@
 export const BRAND = {
   name: "DMAT Mock Prep",
   tagline: "dMAT preparation and study in Germany",
-  /** Fill these in before going public. Empty values are hidden on the site. */
+  /** Public contact details shown on the site. Empty values are hidden. */
   contact: {
-    email: "",
-    phone: "",
+    email: "info@dmatmockprep.com",
+    phone: "+91 86248 59052",
     whatsapp: "",
     city: "",
   },
 };
+
+/** "+91 86248 59052" → "+918624859052" for tel: links */
+export const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;

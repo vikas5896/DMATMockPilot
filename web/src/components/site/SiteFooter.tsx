@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BRAND } from "@/lib/brand";
+import { BRAND, telHref } from "@/lib/brand";
 
 const COLUMNS = [
   {
@@ -38,7 +38,7 @@ export function SiteFooter() {
           {(email || phone) && (
             <p className="mt-3 space-y-1 text-sm text-zinc-700">
               {email && <a href={`mailto:${email}`} className="block hover:text-brand">{email}</a>}
-              {phone && <a href={`tel:${phone}`} className="block hover:text-brand">{phone}</a>}
+              {phone && <a href={telHref(phone)} className="block hover:text-brand">{phone}</a>}
             </p>
           )}
         </div>
