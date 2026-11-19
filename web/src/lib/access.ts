@@ -19,7 +19,7 @@ const DEFAULT_PACKS: (typeof packs.$inferInsert)[] = [
     slug: "full-pack",
     name: "Full Pack",
     description: "Everything: Full dMAT Mocks 2–10 and tests 2–10 of every section, including the General Academic Module.",
-    priceInr: 1499,
+    priceInr: 1599,
     validityDays: 180,
     kinds: ["full", "figure-sequences", "equations", "latin-squares", "subject"],
     sort: 20,
@@ -82,10 +82,16 @@ export async function openRequests(studentId: number) {
 }
 
 /** Record a request; returns false if the same pack is already requested and still open. */
-export async function createRequest(studentId: number, packSlug: string, message: string | null): Promise<boolean> {
+export async function createRequest(
+  studentId: number,
+  packSlug: string,
+  message: string | null,
+  promoCode: string | null = null,
+  quotedPriceInr: number | null = null,
+): Promise<boolean> {
   const open = await openRequests(studentId);
   if (open.some((r) => r.packSlug === packSlug)) return false;
   const db = await getDb();
-  await db.insert(accessRequests).values({ studentId, packSlug, message });
+  await db.insert(accessRequests).values({ studentId, packSlug, message, promoCode, quotedPriceInr });
   return true;
 }

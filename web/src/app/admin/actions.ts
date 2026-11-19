@@ -4,8 +4,10 @@ import { and, eq, inArray } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { accessRequests, grants, LEAD_STATUSES, leads, packs, REQUEST_STATUSES, students, type LeadStatus } from "@/db/schema";
-import { getPack } from "@/lib/access";
+import { accessRequests, grants, LEAD_STATUSES, leads, packs, promoCodes, REQUEST_STATUSES, students, type LeadStatus } from "@/db/schema";
+import { getPack, listPacks } from "@/lib/access";
+import { normalizeCode } from "@/lib/pricing";
+import { getPromo } from "@/lib/promo";
 import { BRAND } from "@/lib/brand";
 import { sendEmail, signature } from "@/lib/email";
 import { CATALOG_KINDS } from "@/lib/exam/catalog";
@@ -121,6 +123,7 @@ export async function grantAccessAction(prev: GrantState, fd: FormData): Promise
     paymentRef: String(fd.get("paymentRef") ?? "").trim().slice(0, 200) || null,
     paymentDate: String(fd.get("paymentDate") ?? "").trim() || null,
     note: String(fd.get("note") ?? "").trim().slice(0, 1000) || null,
+    promoCode: normalizeCode(String(fd.get("promoCode") ?? "")) || null,
     grantedBy: admin,
   });
   // close the matching open request(s) for this pack
@@ -192,4 +195,35 @@ export async function savePackAction(prev: PackFormState, fd: FormData): Promise
   if (!original && (await getPack(slug))) return { error: "A pack with this short name already exists." };
   await db.insert(packs).values(values).onConflictDoUpdate({ target: packs.slug, set: values });
   redirect("/admin/packs?saved=1");
+}
+
+// ---------- promo codes ----------
+export type PromoFormState = { error?: string };
+
+export async function savePromoAction(prev: PromoFormState, fd: FormData): Promise<PromoFormState> {
+  await requireAdmin();
+  const original = String(fd.get("originalCode") ?? "");
+  const code = normalizeCode(String(fd.get("code") ?? ""));
+  const percentOff = Number(fd.get("percentOff"));
+  const maxRaw = String(fd.get("maxUses") ?? "").replace(/[^\d]/g, "");
+  const expiresOn = String(fd.get("expiresOn") ?? "").trim();
+  const known = (await listPacks()).map((p) => p.slug);
+  const packSlugs = fd.getAll("packSlugs").map(String).filter((s) => known.includes(s));
+  if (code.length < 3) return { error: "The code needs at least 3 letters or numbers." };
+  if (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 100) return { error: "Discount must be a whole number from 1 to 100 %." };
+  if (expiresOn && !/^\d{4}-\d{2}-\d{2}$/.test(expiresOn)) return { error: "Expiry date is not valid." };
+  if (original && original !== code) return { error: "The code of an existing promo cannot be changed. Create a new one instead." };
+  if (!original && (await getPromo(code))) return { error: `The code ${code} already exists.` };
+  const values = {
+    code,
+    percentOff,
+    label: String(fd.get("label") ?? "").trim().slice(0, 120) || null,
+    packSlugs,
+    active: fd.get("active") === "on",
+    maxUses: maxRaw ? Number(maxRaw) : null,
+    expiresOn: expiresOn || null,
+  };
+  const db = await getDb();
+  await db.insert(promoCodes).values(values).onConflictDoUpdate({ target: promoCodes.code, set: values });
+  redirect(`/admin/promo-codes?saved=${encodeURIComponent(code)}`);
 }

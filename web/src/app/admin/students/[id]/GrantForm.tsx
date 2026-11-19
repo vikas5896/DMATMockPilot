@@ -12,15 +12,20 @@ export function GrantForm({
   packs,
   defaultPack,
   requestId,
+  quote,
 }: {
   studentId: number;
   packs: P[];
   defaultPack?: string;
   requestId?: number;
+  /** price and promo code from the student's request */
+  quote?: { packSlug: string; priceInr: number | null; promoCode: string | null };
 }) {
   const [state, action, pending] = useActionState<GrantState, FormData>(grantAccessAction, {});
   const [slug, setSlug] = useState(defaultPack && packs.some((p) => p.slug === defaultPack) ? defaultPack : packs[0]?.slug);
   const pack = packs.find((p) => p.slug === slug);
+  const q = quote && quote.packSlug === slug ? quote : null;
+  const amount = q?.priceInr ?? pack?.priceInr ?? "";
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -45,14 +50,19 @@ export function GrantForm({
       </label>
       <label className="text-sm font-medium">
         Amount received (₹)
-        <input key={`a${slug}`} name="amount" inputMode="numeric" defaultValue={pack?.priceInr ?? ""} className={f} />
+        <input key={`a${slug}`} name="amount" inputMode="numeric" defaultValue={amount} className={f} />
         <span className="mt-1 block text-xs font-normal text-zinc-500">Enter 0 for free access (e.g. live-class students).</span>
       </label>
       <label className="text-sm font-medium">
         Payment date
         <input name="paymentDate" type="date" defaultValue={today} className={f} />
       </label>
-      <label className="text-sm font-medium sm:col-span-2">
+      <label className="text-sm font-medium">
+        Promo code
+        <input key={`c${slug}`} name="promoCode" defaultValue={q?.promoCode ?? ""} placeholder="none" className={`${f} uppercase`} />
+        <span className="mt-1 block text-xs font-normal text-zinc-500">Counts this sale for the influencer.</span>
+      </label>
+      <label className="text-sm font-medium">
         UPI / bank reference
         <input name="paymentRef" placeholder="e.g. UPI ref 4321…" className={f} />
       </label>

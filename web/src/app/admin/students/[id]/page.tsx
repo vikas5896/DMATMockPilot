@@ -42,6 +42,10 @@ async function StudentDetail({ params, searchParams }: Props) {
   const packName = (slug: string) => packList.find((p) => p.slug === slug)?.name ?? slug;
   const now = new Date();
   const lastDone = tests.find((t) => t.status === "completed");
+  // granting from a request: use its price and promo code (else the newest open request)
+  const reqId = typeof sp.request === "string" ? Number(sp.request) : 0;
+  const fromRequest =
+    reqs.find((r) => r.id === reqId) ?? reqs.find((r) => ["new", "contacted", "paid"].includes(r.status));
 
   return (
     <AdminShell email={email} active="/admin/students" title={s.name ?? s.email}>
@@ -115,6 +119,7 @@ async function StudentDetail({ params, searchParams }: Props) {
                     <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                       <span>
                         <strong>{packName(g.packSlug)}</strong> · {g.amountInr != null ? `₹${g.amountInr}` : "no amount"}
+                        {g.promoCode ? ` · code ${g.promoCode}` : ""}
                         {g.paymentRef ? ` · ref ${g.paymentRef}` : ""} · granted {fmt(g.grantedAt)} by {g.grantedBy}
                         <br />
                         <span className={active ? "text-emerald-700" : "text-zinc-400"}>
@@ -142,7 +147,9 @@ async function StudentDetail({ params, searchParams }: Props) {
               <ul className="mt-2 space-y-1">
                 {reqs.map((r) => (
                   <li key={r.id}>
-                    {fmt(r.createdAt)} · {packName(r.packSlug)} · <strong>{r.status}</strong>
+                    {fmt(r.createdAt)} · {packName(r.packSlug)}
+                    {r.quotedPriceInr != null ? ` · ₹${r.quotedPriceInr}` : ""}
+                    {r.promoCode ? ` · code ${r.promoCode}` : ""} · <strong>{r.status}</strong>
                     {r.message && <span className="block text-xs text-zinc-600">“{r.message}”</span>}
                   </li>
                 ))}
@@ -153,8 +160,13 @@ async function StudentDetail({ params, searchParams }: Props) {
           <GrantForm
             studentId={s.id}
             packs={packList.map((p) => ({ slug: p.slug, name: p.name, priceInr: p.priceInr, validityDays: p.validityDays }))}
-            defaultPack={typeof sp.pack === "string" ? sp.pack : undefined}
-            requestId={typeof sp.request === "string" ? Number(sp.request) || undefined : undefined}
+            defaultPack={typeof sp.pack === "string" ? sp.pack : fromRequest?.packSlug}
+            requestId={fromRequest?.id}
+            quote={
+              fromRequest
+                ? { packSlug: fromRequest.packSlug, priceInr: fromRequest.quotedPriceInr, promoCode: fromRequest.promoCode }
+                : undefined
+            }
           />
           <p className="text-xs text-zinc-500">
             <Link href="/admin/students" className="hover:text-brand">

@@ -89,6 +89,9 @@ export const accessRequests = pgTable("access_requests", {
     .references(() => students.id, { onDelete: "cascade" }),
   packSlug: text("pack_slug").notNull(),
   message: text("message"),
+  /** promo code applied when requesting, and the price we quoted */
+  promoCode: text("promo_code"),
+  quotedPriceInr: integer("quoted_price_inr"),
   /** new → contacted → paid → granted / closed */
   status: text("status").notNull().default("new"),
   notes: text("notes"),
@@ -108,11 +111,26 @@ export const grants = pgTable("grants", {
   amountInr: integer("amount_inr"),
   paymentRef: text("payment_ref"),
   paymentDate: text("payment_date"),
+  promoCode: text("promo_code"),
   note: text("note"),
   grantedBy: text("granted_by").notNull(),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
 });
 
+/** Promo codes, e.g. one per Instagram influencer, so each one's students can be counted. */
+export const promoCodes = pgTable("promo_codes", {
+  code: text("code").primaryKey(), // stored in UPPER CASE
+  percentOff: integer("percent_off").notNull(),
+  label: text("label"), // e.g. influencer name
+  /** packs the code works for; empty = all packs */
+  packSlugs: jsonb("pack_slugs").$type<string[]>().notNull().default([]),
+  active: boolean("active").notNull().default(true),
+  maxUses: integer("max_uses"),
+  expiresOn: text("expires_on"), // YYYY-MM-DD, last valid day (Indian time)
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type PromoCode = typeof promoCodes.$inferSelect;
 export type Pack = typeof packs.$inferSelect;
 export type AccessRequest = typeof accessRequests.$inferSelect;
 export type Grant = typeof grants.$inferSelect;

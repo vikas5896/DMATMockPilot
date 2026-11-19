@@ -1,0 +1,124 @@
+"use client";
+
+import { useActionState, useState } from "react";
+import { savePromoAction, type PromoFormState } from "@/app/admin/actions";
+
+export type PromoInitial = {
+  code: string;
+  percentOff: number;
+  label: string | null;
+  packSlugs: string[];
+  active: boolean;
+  maxUses: number | null;
+  expiresOn: string | null;
+};
+
+const f = "mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand";
+
+export function PromoForm({
+  initial,
+  packs,
+  siteUrl,
+  stats,
+}: {
+  initial?: PromoInitial;
+  packs: { slug: string; name: string; priceInr: number | null }[];
+  siteUrl: string;
+  stats?: { requests: number; sales: number; revenueInr: number };
+}) {
+  const [state, action, pending] = useActionState<PromoFormState, FormData>(savePromoAction, {});
+  const [copied, setCopied] = useState(false);
+  const isNew = !initial;
+  const link = initial ? `${siteUrl}/packs?code=${initial.code}` : "";
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+  return (
+    <form action={action} className={`space-y-3 rounded-xl border bg-white p-5 ${isNew ? "border-dashed border-zinc-300" : "border-zinc-200"}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-bold">
+          {isNew ? "+ New promo code" : initial.code}
+          {initial && !initial.active && <span className="ml-2 rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">paused</span>}
+        </h2>
+        {stats && (
+          <p className="text-sm text-zinc-600">
+            <strong>{stats.requests}</strong> requests · <strong>{stats.sales}</strong> sales ·{" "}
+            <strong>₹{stats.revenueInr.toLocaleString("en-IN")}</strong>
+          </p>
+        )}
+      </div>
+      {initial && (
+        <div className="flex items-center gap-2 rounded-md bg-zinc-50 px-3 py-2 text-sm">
+          <span className="min-w-0 flex-1 truncate font-mono text-zinc-700">{link}</span>
+          <button type="button" onClick={copy} className="shrink-0 font-semibold text-brand underline">
+            {copied ? "Copied ✓" : "Copy link"}
+          </button>
+        </div>
+      )}
+      <input type="hidden" name="originalCode" value={initial?.code ?? ""} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm font-medium">
+          Code
+          <input
+            name="code"
+            defaultValue={initial?.code}
+            required
+            readOnly={!isNew}
+            placeholder="RIYA50"
+            className={`${f} uppercase ${isNew ? "" : "bg-zinc-50 text-zinc-500"}`}
+          />
+        </label>
+        <label className="text-sm font-medium">
+          Discount (%)
+          <input name="percentOff" type="number" min={1} max={100} defaultValue={initial?.percentOff ?? 50} required className={f} />
+        </label>
+        <label className="text-sm font-medium sm:col-span-2">
+          Influencer / note
+          <input name="label" defaultValue={initial?.label ?? ""} placeholder="Riya (Instagram @riya_in_germany)" className={f} />
+        </label>
+        <label className="text-sm font-medium">
+          Max sales
+          <input name="maxUses" inputMode="numeric" defaultValue={initial?.maxUses ?? ""} placeholder="empty = unlimited" className={f} />
+        </label>
+        <label className="text-sm font-medium">
+          Valid until (last day)
+          <input name="expiresOn" type="date" defaultValue={initial?.expiresOn ?? ""} className={f} />
+        </label>
+      </div>
+      <fieldset className="text-sm">
+        <legend className="font-medium">Valid for (none ticked = all packs)</legend>
+        <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
+          {packs.map((p) => (
+            <label key={p.slug} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="packSlugs"
+                value={p.slug}
+                defaultChecked={initial?.packSlugs.includes(p.slug)}
+                className="h-4 w-4 accent-[var(--brand)]"
+              />
+              {p.name}
+              {p.priceInr != null && <span className="text-zinc-500">(₹{p.priceInr.toLocaleString("en-IN")})</span>}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="active" defaultChecked={initial?.active ?? true} className="h-4 w-4 accent-[var(--brand)]" />
+        Active (students can use it)
+      </label>
+      {state.error && (
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          {state.error}
+        </p>
+      )}
+      <button disabled={pending} className="rounded-md bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60">
+        {pending ? "Saving…" : isNew ? "Create code" : "Save"}
+      </button>
+    </form>
+  );
+}

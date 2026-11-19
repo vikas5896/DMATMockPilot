@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { PackCard } from "@/components/site/PackCard";
 import { Faq, PageHero, Section } from "@/components/site/ui";
@@ -67,6 +68,7 @@ export default function PacksPage() {
 }
 
 async function PackList() {
+  await connection(); // per-request: login check and expiry dates use the current time
   const [list, me] = await Promise.all([listPacks({ publishedOnly: true }), currentStudent()]);
   const signedIn = !!(me?.name && me.phone);
   const [open, active] = signedIn ? await Promise.all([openRequests(me!.id), activeGrants(me!.id)]) : [[], []];

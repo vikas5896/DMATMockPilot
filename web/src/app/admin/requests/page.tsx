@@ -100,7 +100,19 @@ async function Requests({ searchParams }: { searchParams: SP }) {
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium">{p?.name ?? r.packSlug}</p>
-                    {p?.priceInr != null && <p className="text-zinc-600">₹{p.priceInr.toLocaleString("en-IN")}</p>}
+                    {r.promoCode && r.quotedPriceInr != null ? (
+                      <p className="text-zinc-600">
+                        <strong className="text-emerald-700">₹{r.quotedPriceInr.toLocaleString("en-IN")}</strong>
+                        {p?.priceInr != null && <span className="ml-1 text-xs line-through">₹{p.priceInr.toLocaleString("en-IN")}</span>}
+                        <span className="mt-0.5 block w-fit rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-800">
+                          code {r.promoCode}
+                        </span>
+                      </p>
+                    ) : (
+                      (r.quotedPriceInr ?? p?.priceInr) != null && (
+                        <p className="text-zinc-600">₹{(r.quotedPriceInr ?? p?.priceInr ?? 0).toLocaleString("en-IN")}</p>
+                      )
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${STYLE[r.status] ?? ""}`}>{r.status}</span>
@@ -120,7 +132,7 @@ async function Requests({ searchParams }: { searchParams: SP }) {
                   <td className="space-y-1.5 px-4 py-3">
                     {s.phone && (
                       <a
-                        href={waLink(s.phone, WA.request(s.name, p?.name ?? r.packSlug, p?.priceInr ?? null))}
+                        href={waLink(s.phone, WA.request(s.name, p?.name ?? r.packSlug, r.quotedPriceInr ?? p?.priceInr ?? null, r.promoCode))}
                         target="_blank"
                         rel="noreferrer"
                         className="block rounded-md bg-emerald-600 px-3 py-1.5 text-center text-xs font-semibold text-white hover:bg-emerald-700"

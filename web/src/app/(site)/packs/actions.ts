@@ -2,6 +2,8 @@
 
 import { currentStudent } from "@/lib/auth";
 import { createRequest, getPack } from "@/lib/access";
+import { normalizeCode } from "@/lib/pricing";
+import { checkPromo, type PromoCheck } from "@/lib/promo";
 import { BRAND } from "@/lib/brand";
 import { notifyAdmins, sendEmail, signature } from "@/lib/email";
 
@@ -12,17 +14,39 @@ const waNumber = (phone: string) => {
   return d.length === 10 ? `91${d}` : d;
 };
 
-export async function requestAccessAction(packSlug: string, message: string, from: string): Promise<RequestResult> {
+/** Check a promo code for a pack (no login needed, so visitors can see the discounted price). */
+export async function checkPromoAction(code: string, packSlug: string): Promise<PromoCheck> {
+  if (!normalizeCode(code)) return { ok: false, error: "Please enter a promo code." };
+  return checkPromo(code, packSlug);
+}
+
+export async function requestAccessAction(
+  packSlug: string,
+  message: string,
+  from: string,
+  promoCode?: string,
+): Promise<RequestResult> {
   const me = await currentStudent();
   if (!me || !me.name || !me.phone) return { ok: false, error: "Please log in first." };
   const pack = await getPack(packSlug);
   if (!pack || !pack.published) return { ok: false, error: "This pack is not available." };
   const note = message.trim().slice(0, 1000) || null;
 
-  const created = await createRequest(me.id, pack.slug, note);
+  let code: string | null = null;
+  let quoted = pack.priceInr;
+  if (promoCode && normalizeCode(promoCode)) {
+    const check = await checkPromo(promoCode, pack.slug);
+    if (!check.ok) return { ok: false, error: check.error };
+    code = check.code;
+    quoted = check.finalPriceInr;
+  }
+
+  const created = await createRequest(me.id, pack.slug, note, code, quoted);
   if (!created) return { ok: true, already: true };
 
-  const price = pack.priceInr != null ? `₹${pack.priceInr.toLocaleString("en-IN")}` : "price on request";
+  const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+  const price =
+    quoted == null ? "price on request" : code && pack.priceInr != null ? `${rupees(quoted)} with code ${code}, instead of ${rupees(pack.priceInr)}` : rupees(quoted);
   await Promise.all([
     notifyAdmins(`Access request: ${pack.name} – ${me.name}`, [
       `${me.name} wants the ${pack.name} (${price}).`,
@@ -30,6 +54,7 @@ export async function requestAccessAction(packSlug: string, message: string, fro
       `Phone: ${me.phone}`,
       `WhatsApp: https://wa.me/${waNumber(me.phone)}`,
       `Asked from: ${from}`,
+      code ? `Promo code: ${code}` : "",
       note ? `Message: ${note}` : "",
     ]),
     sendEmail({
