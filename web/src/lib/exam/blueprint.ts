@@ -1,3 +1,4 @@
+import { SUBJECT_QUESTION_COUNT, SUBJECT_TEXTS } from "@/content/subject";
 import type { Difficulty, ExamBlueprint, SubtestSpec } from "./types";
 
 /** 20 items rising in difficulty: 7 low, 7 medium, 6 high. */
@@ -9,6 +10,7 @@ export const RISING_20: Difficulty[] = [
 
 export const FIGURE_SEQUENCES: SubtestSpec = {
   key: "figure-sequences",
+  module: "core",
   title: "Figure Sequences",
   itemType: "figure-sequence",
   count: 20,
@@ -26,6 +28,7 @@ export const FIGURE_SEQUENCES: SubtestSpec = {
 
 export const EQUATIONS: SubtestSpec = {
   key: "equations",
+  module: "core",
   title: "Mathematical Equations",
   itemType: "equations",
   count: 20,
@@ -45,6 +48,7 @@ export const EQUATIONS: SubtestSpec = {
 
 export const LATIN_SQUARES: SubtestSpec = {
   key: "latin-squares",
+  module: "core",
   title: "Latin Squares",
   itemType: "latin-square",
   count: 20,
@@ -60,6 +64,27 @@ export const LATIN_SQUARES: SubtestSpec = {
 };
 
 export const CORE_SUBTESTS = [FIGURE_SEQUENCES, EQUATIONS, LATIN_SQUARES];
+
+/** The real module: 90 minutes for all texts together. */
+export const SUBJECT_TIME_SEC = 90 * 60;
+
+export const SUBJECT_MODULE: SubtestSpec = {
+  key: "general-academic",
+  module: "subject",
+  title: "General Academic Module",
+  itemType: "passage-mcq",
+  count: SUBJECT_QUESTION_COUNT,
+  timeSec: SUBJECT_TIME_SEC,
+  difficultyPlan: SUBJECT_TEXTS.flatMap((t) => t.questions.map((q) => q.difficulty)),
+  instructions: {
+    heading: "Read the texts and answer the questions.",
+    lines: [
+      "There are 10 texts. Each comes with 7–8 questions, shown next to the text; every question has four options and exactly one is correct.",
+      "Texts may contain figures, tables and formulas. Use the numbers 1–10 at the bottom to move freely between texts until the time runs out.",
+      "No notes, no calculator. Guess if you are unsure: there is no negative marking.",
+    ],
+  },
+};
 
 export const DMAT_BLUEPRINT: ExamBlueprint = {
   id: "dmat-general-academic",
@@ -77,11 +102,11 @@ export const DMAT_BLUEPRINT: ExamBlueprint = {
       key: "subject",
       title: "Subject Module",
       subtitle: "General Academic Module",
-      subtests: [], // added in a later phase
+      subtests: [SUBJECT_MODULE],
     },
   ],
 };
 
 export function subtestByKey(key: string): SubtestSpec | undefined {
-  return CORE_SUBTESTS.find((s) => s.key === key);
+  return [...CORE_SUBTESTS, SUBJECT_MODULE].find((s) => s.key === key);
 }

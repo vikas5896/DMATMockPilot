@@ -11,6 +11,7 @@ import type {
 import { EquationsView } from "./EquationsView";
 import { FigureSequenceView } from "./FigureSequenceView";
 import { LatinSquareView } from "./LatinSquareView";
+import { PassageMcqView } from "@/components/subject/PassageMcqView";
 
 type Props = {
   item: Item;
@@ -18,9 +19,10 @@ type Props = {
   onAnswer?: (a: Answer) => void;
   /** pass the key to render in review mode */
   reviewKey?: AnswerKey;
+  ofTotal?: number;
 };
 
-export function ItemView({ item, answer, onAnswer, reviewKey }: Props) {
+export function ItemView({ item, answer, onAnswer, reviewKey, ofTotal }: Props) {
   switch (item.type) {
     case "figure-sequence":
       return (
@@ -38,6 +40,16 @@ export function ItemView({ item, answer, onAnswer, reviewKey }: Props) {
           answer={answer as EquationsAnswer | undefined}
           onAnswer={onAnswer}
           correct={reviewKey?.type === "equations" ? reviewKey.correct : undefined}
+        />
+      );
+    case "passage-mcq":
+      return (
+        <PassageMcqView
+          item={item}
+          answer={answer as number | null | undefined}
+          onAnswer={onAnswer}
+          correct={reviewKey?.type === "passage-mcq" ? reviewKey.correct : undefined}
+          ofTotal={ofTotal}
         />
       );
     case "latin-square":

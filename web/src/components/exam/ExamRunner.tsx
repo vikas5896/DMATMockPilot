@@ -8,6 +8,7 @@ import { buildSubtest } from "@/lib/generators";
 import { isAnswered } from "@/lib/exam/scoring";
 import {
   activeSeed,
+  afterSubtest,
   loadAttempt,
   newAttempt,
   saveAttempt,
@@ -15,7 +16,8 @@ import {
   type Attempt,
   type TestKind,
 } from "@/lib/exam/tests";
-import type { Answer, EquationsItem } from "@/lib/exam/types";
+import type { Answer, EquationsItem, PassageMcqItem } from "@/lib/exam/types";
+import { SubjectTextView } from "@/components/subject/SubjectTextView";
 import { BRAND } from "@/lib/brand";
 import { Dialog, ExamFooter, ExamHeader, formatClock, InstructionsBar } from "./ExamChrome";
 import { ItemView } from "./ItemView";
@@ -69,6 +71,15 @@ function AttemptView({ kind, seed }: { kind: TestKind; seed: number }) {
 
   const spec = test.subtests[attempt.stage];
 
+  if (attempt.status === "break") {
+    return (
+      <BreakScreen
+        attempt={attempt}
+        onEnd={() => update((a) => ({ ...a, status: "intro", deadline: null }))}
+      />
+    );
+  }
+
   if (attempt.status === "intro") {
     return (
       <div className="flex min-h-screen flex-col">
@@ -79,8 +90,14 @@ function AttemptView({ kind, seed }: { kind: TestKind; seed: number }) {
           </p>
           <h1 className="mt-1 text-3xl font-bold">{spec.title}</h1>
           <p className="mt-2 text-zinc-600">
-            {spec.count} tasks · {spec.timeSec / 60} minutes
+            {spec.count} {spec.module === "subject" ? "questions" : "tasks"} · {spec.timeSec / 60} minutes
           </p>
+          {spec.module === "subject" && spec.count < 60 && (
+            <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              Practice set: {spec.count} questions in {spec.timeSec / 60} minutes, the same 1.5 minutes per question as
+              the real module (about 60 questions in 90 minutes). More texts are being added.
+            </p>
+          )}
           <div className="mt-6 space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-5 text-[15px] leading-7">
             <p className="font-semibold">{spec.instructions.heading}</p>
             {spec.instructions.lines.map((l, i) => (
@@ -157,8 +174,7 @@ function RunningSubtest({
     update((a) => {
       a.timeMs[stage][a.current[stage]] += dt;
       a.usedMs[stage] = Math.min(spec.timeSec * 1000, spec.timeSec * 1000 - ((a.deadline ?? 0) - t));
-      const last = stage === test.subtests.length - 1;
-      return { ...a, stage: last ? stage : stage + 1, status: last ? "finished" : "intro", deadline: null };
+      return afterSubtest(a, t);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, update]);
@@ -181,11 +197,25 @@ function RunningSubtest({
     });
   };
 
-  const setAnswer = (ans: Answer) =>
+  const setAnswerAt = (index: number, ans: Answer) =>
     update((a) => {
-      a.answers[stage][current] = ans;
+      a.answers[stage][index] = ans;
       return a;
     });
+  const setAnswer = (ans: Answer) => setAnswerAt(current, ans);
+
+  // Subject Module: questions grouped by text; the footer navigates texts 1–10
+  const isSubject = spec.itemType === "passage-mcq";
+  const texts: { id: string; indices: number[] }[] = [];
+  if (isSubject) {
+    subItems.forEach(({ item: it }, i) => {
+      const id = it.type === "passage-mcq" ? it.passage.id : "";
+      const last = texts.at(-1);
+      if (last && last.id === id) last.indices.push(i);
+      else texts.push({ id, indices: [i] });
+    });
+  }
+  const currentText = isSubject ? Math.max(0, texts.findIndex((t) => t.indices.includes(current))) : 0;
 
   const answered = subItems.map(({ item }, i) =>
     isAnswered(attempt.answers[stage][i] ?? undefined, item.type === "equations" ? (item as EquationsItem).variables : undefined),
@@ -204,12 +234,37 @@ function RunningSubtest({
         zoom={zoom}
         onZoom={setZoom}
       />
-      <main className="flex-1 overflow-auto px-4 pb-6 pt-10">
-        <div style={{ zoom }}>
-          <ItemView key={item.id} item={item} answer={attempt.answers[stage][current] ?? undefined} onAnswer={setAnswer} />
-        </div>
-      </main>
-      <ExamFooter count={spec.count} current={current} answered={answered} onGo={go} />
+      {isSubject ? (
+        <main className="min-h-0 flex-1 overflow-hidden pt-8" style={{ zoom }}>
+          <SubjectTextView
+            key={texts[currentText].id}
+            textNumber={currentText + 1}
+            textCount={texts.length}
+            questions={texts[currentText].indices.map((i) => ({
+              item: subItems[i].item as PassageMcqItem,
+              answer: attempt.answers[stage][i] as number | null,
+            }))}
+            onAnswer={(qi, option) => setAnswerAt(texts[currentText].indices[qi], option)}
+          />
+        </main>
+      ) : (
+        <main className="flex-1 overflow-auto px-4 pb-6 pt-10">
+          <div style={{ zoom }}>
+            <ItemView key={item.id} item={item} answer={attempt.answers[stage][current] ?? undefined} onAnswer={setAnswer} />
+          </div>
+        </main>
+      )}
+      {isSubject ? (
+        <ExamFooter
+          count={texts.length}
+          current={currentText}
+          answered={texts.map((t) => t.indices.every((i) => answered[i]))}
+          onGo={(p) => go(texts[p].indices[0])}
+          itemLabel="text"
+        />
+      ) : (
+        <ExamFooter count={spec.count} current={current} answered={answered} onGo={go} />
+      )}
 
       {confirmEnd && (
         <Dialog onClose={() => setConfirmEnd(false)}>
@@ -237,6 +292,50 @@ function RunningSubtest({
           </div>
         </Dialog>
       )}
+    </div>
+  );
+}
+
+function BreakScreen({ attempt, onEnd }: { attempt: Attempt; onEnd: () => void }) {
+  const test = TESTS[attempt.kind];
+  const [now, setNow] = useState(() => Date.now());
+  const remaining = (attempt.deadline ?? 0) - now;
+  const ended = useRef(false);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (remaining <= 0 && !ended.current) {
+      ended.current = true;
+      onEnd();
+    }
+  }, [remaining, onEnd]);
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <ExamHeader remainingMs={remaining} subtests={test.subtests} stage={attempt.stage} />
+      <main className="mx-auto max-w-xl flex-1 px-6 py-16 text-center">
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand">Break</p>
+        <h1 className="mt-2 text-3xl font-bold">Core Module finished</h1>
+        <p className="mt-4 text-zinc-600">
+          In the real exam there is a 30-minute break before the Subject Module. Stretch, drink some water, rest your
+          eyes. The Subject Module starts when the break ends.
+        </p>
+        <p className="mt-8 text-6xl font-bold tabular-nums text-brand">{formatClock(remaining)}</p>
+        <button
+          type="button"
+          onClick={() => {
+            ended.current = true;
+            onEnd();
+          }}
+          className="mt-10 rounded-md border border-brand px-6 py-3 font-semibold text-brand hover:bg-brand-soft"
+        >
+          Skip the break and continue
+        </button>
+      </main>
     </div>
   );
 }

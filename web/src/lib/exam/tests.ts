@@ -1,13 +1,34 @@
-import { CORE_SUBTESTS, EQUATIONS, FIGURE_SEQUENCES, LATIN_SQUARES } from "./blueprint";
+import { CORE_SUBTESTS, EQUATIONS, FIGURE_SEQUENCES, LATIN_SQUARES, SUBJECT_MODULE } from "./blueprint";
 import type { Answer, SubtestSpec } from "./types";
 
-export type TestKind = "core" | "figure-sequences" | "equations" | "latin-squares";
+export type TestKind = "full" | "core" | "subject" | "figure-sequences" | "equations" | "latin-squares";
 
-export const TESTS: Record<TestKind, { title: string; blurb: string; subtests: SubtestSpec[] }> = {
+export type TestDef = {
+  title: string;
+  blurb: string;
+  subtests: SubtestSpec[];
+  /** a break is offered before the subtest with this index */
+  breakBefore?: number;
+  breakSec?: number;
+};
+
+export const TESTS: Record<TestKind, TestDef> = {
+  full: {
+    title: "Full dMAT mock",
+    blurb: "Core Module, 30-minute break, then the General Academic Module, exactly in exam order.",
+    subtests: [...CORE_SUBTESTS, SUBJECT_MODULE],
+    breakBefore: 3,
+    breakSec: 30 * 60,
+  },
   core: {
     title: "Full Core Module mock",
-    blurb: "All three subtests back to back, 75 minutes, exactly like test day.",
+    blurb: "All three Core subtests back to back, 75 minutes.",
     subtests: CORE_SUBTESTS,
+  },
+  subject: {
+    title: "General Academic Module",
+    blurb: "10 academic texts with tables, figures and formulas, 7–8 single-choice questions each, 90 minutes.",
+    subtests: [SUBJECT_MODULE],
   },
   "figure-sequences": {
     title: "Figure Sequences",
@@ -33,8 +54,8 @@ export type Attempt = {
   kind: TestKind;
   seed: number;
   stage: number; // index of the current subtest
-  status: "intro" | "running" | "finished";
-  deadline: number | null; // epoch ms for the running subtest
+  status: "intro" | "running" | "break" | "finished";
+  deadline: number | null; // epoch ms for the running subtest or the break
   answers: (Answer | null)[][];
   current: number[];
   timeMs: number[][];
@@ -64,7 +85,11 @@ export function loadAttempt(kind: TestKind, seed: number): Attempt | null {
   try {
     const raw = localStorage.getItem(key(kind, seed));
     const a = raw ? (JSON.parse(raw) as Attempt) : null;
-    return a?.v === 1 ? a : null;
+    if (a?.v !== 1) return null;
+    // content can grow (more Subject texts): drop attempts whose shape no longer matches
+    const subs = TESTS[kind].subtests;
+    if (a.answers.length !== subs.length || a.answers.some((x, i) => x.length !== subs[i].count)) return null;
+    return a;
   } catch {
     return null;
   }
@@ -79,4 +104,15 @@ export function saveAttempt(a: Attempt) {
 export function activeSeed(kind: TestKind): number | null {
   const s = localStorage.getItem(activeKey(kind));
   return s ? Number(s) : null;
+}
+
+/** What happens when the running subtest ends (time up or End Subtest): next intro, the break, or the results. */
+export function afterSubtest(a: Attempt, now: number): Attempt {
+  const test = TESTS[a.kind];
+  const last = a.stage === test.subtests.length - 1;
+  if (last) return { ...a, status: "finished", deadline: null };
+  if (test.breakBefore === a.stage + 1 && test.breakSec) {
+    return { ...a, stage: a.stage + 1, status: "break", deadline: now + test.breakSec * 1000 };
+  }
+  return { ...a, stage: a.stage + 1, status: "intro", deadline: null };
 }

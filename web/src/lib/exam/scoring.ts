@@ -20,6 +20,8 @@ export function isCorrect(key: AnswerKey, answer: Answer | undefined): boolean {
     }
     case "latin-square":
       return (answer as LatinSquareAnswer) === key.correct;
+    case "passage-mcq":
+      return answer === key.correct;
   }
 }
 
@@ -27,7 +29,7 @@ export function isCorrect(key: AnswerKey, answer: Answer | undefined): boolean {
 export function isAnswered(answer: Answer | undefined, variables?: string[]): boolean {
   if (answer == null) return false;
   if (Array.isArray(answer)) return answer[0] != null && answer[1] != null;
-  if (typeof answer === "string") return true;
+  if (typeof answer === "string" || typeof answer === "number") return true;
   const vars = variables ?? Object.keys(answer);
   return vars.length > 0 && vars.every((v) => (answer as EquationsAnswer)[v]?.trim());
 }

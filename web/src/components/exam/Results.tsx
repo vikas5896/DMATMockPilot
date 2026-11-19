@@ -29,6 +29,16 @@ export function Results({
   );
   const total = scores.reduce((n, s) => n + s.correct, 0);
   const max = scores.reduce((n, s) => n + s.total, 0);
+  const modules = (["core", "subject"] as const)
+    .map((mod) => {
+      const idx = test.subtests.map((s, i) => (s.module === mod ? i : -1)).filter((i) => i >= 0);
+      return {
+        name: mod === "core" ? "Core Module" : "Subject Module",
+        correct: idx.reduce((n, i) => n + scores[i].correct, 0),
+        total: idx.reduce((n, i) => n + scores[i].total, 0),
+      };
+    })
+    .filter((m) => m.total > 0);
   const [open, setOpen] = useState<{ s: number; i: number } | null>(null);
 
   return (
@@ -49,8 +59,20 @@ export function Results({
           Raw score: one point per fully correct task, no negative marking. The real dMAT reports a scaled
           score; ours will follow once we have enough data to calibrate it.
         </p>
+        {modules.length > 1 && (
+          <div className="mt-4 flex gap-6 text-sm">
+            {modules.map((m) => (
+              <p key={m.name}>
+                <span className="text-zinc-500">{m.name}: </span>
+                <span className="font-semibold tabular-nums">
+                  {m.correct} / {m.total}
+                </span>
+              </p>
+            ))}
+          </div>
+        )}
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {test.subtests.map((spec, s) => (
             <div key={spec.key} className="rounded-lg border border-zinc-200 bg-white p-5">
               <p className="text-sm text-zinc-500">{spec.title}</p>

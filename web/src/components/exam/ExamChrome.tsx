@@ -38,25 +38,26 @@ export function ExamHeader({
         {formatClock(remainingMs)}
       </div>
 
-      <div>
-        <div className="mb-1 flex gap-1.5">
-          {subtests.map((s, i) => (
-            <span
-              key={s.key}
-              className={`block h-[5px] rounded-sm ${i === stage ? "h-3 w-6 bg-white" : "w-6 bg-white/40"}`}
-              title={s.title}
-            />
-          ))}
-        </div>
-        <p className="text-[15px] font-semibold leading-tight">Core Module</p>
-        <p className="text-[11px] leading-tight">{subtests[stage]?.title}</p>
-      </div>
-
-      <div className="opacity-50">
-        <div className="mb-1 h-[5px] w-6 rounded-sm bg-white/60" />
-        <p className="text-[15px] font-semibold leading-tight">Subject Module</p>
-        <p className="text-[11px] leading-tight">General Academic Module</p>
-      </div>
+      {(["core", "subject"] as const).map((mod) => {
+        const indexed = subtests.map((s, i) => ({ s, i })).filter(({ s }) => s.module === mod);
+        const active = subtests[stage]?.module === mod;
+        const fallback = mod === "core" ? "Figure Sequences · Equations · Latin Squares" : "General Academic Module";
+        return (
+          <div key={mod} className={active ? "" : "opacity-50"}>
+            <div className="mb-1 flex h-3 items-end gap-1.5">
+              {(indexed.length ? indexed : [{ s: null, i: -1 }]).map(({ s, i }) => (
+                <span
+                  key={s?.key ?? mod}
+                  className={`block rounded-sm ${i === stage ? "h-3 w-6 bg-white" : "h-[5px] w-6 bg-white/50"}`}
+                  title={s?.title}
+                />
+              ))}
+            </div>
+            <p className="text-[15px] font-semibold leading-tight">{mod === "core" ? "Core Module" : "Subject Module"}</p>
+            <p className="text-[11px] leading-tight">{active ? subtests[stage].title : fallback}</p>
+          </div>
+        );
+      })}
 
       <div className="flex-1" />
       {onEnd && (
@@ -151,11 +152,14 @@ export function ExamFooter({
   current,
   answered,
   onGo,
+  itemLabel = "question",
 }: {
   count: number;
   current: number;
   answered: boolean[];
   onGo: (i: number) => void;
+  /** what one palette number stands for, for screen readers ("question" or "text") */
+  itemLabel?: string;
 }) {
   const nav = "flex items-center gap-2 rounded-md bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-40";
   return (
@@ -171,7 +175,7 @@ export function ExamFooter({
             type="button"
             onClick={() => onGo(i)}
             aria-current={i === current}
-            aria-label={`question ${i + 1}${answered[i] ? ", answered" : ""}`}
+            aria-label={`${itemLabel} ${i + 1}${answered[i] ? ", answered" : ""}`}
             className={`h-8 w-8 rounded text-xs font-semibold ${
               i === current
                 ? "border-2 border-brand bg-white text-brand"

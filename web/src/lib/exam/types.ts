@@ -1,6 +1,6 @@
 export type Difficulty = "low" | "medium" | "high";
 
-export type ItemType = "figure-sequence" | "equations" | "latin-square";
+export type ItemType = "figure-sequence" | "equations" | "latin-square" | "passage-mcq";
 
 // ---------- Figure Sequences ----------
 export type Shape = "diamond" | "circle" | "square" | "arrow" | "triangle";
@@ -59,20 +59,62 @@ export type LatinSquareItem = {
 };
 export type LatinSquareAnswer = LatinLetter | null;
 
-export type Item = FigureSequenceItem | EquationsItem | LatinSquareItem;
-export type Answer = FigureSequenceAnswer | EquationsAnswer | LatinSquareAnswer;
+// ---------- Subject Module (passage + single-choice questions) ----------
+/** Text may contain inline math between $…$ (KaTeX). */
+export type PassageBlock =
+  | { k: "h"; text: string }
+  | { k: "p"; text: string }
+  | { k: "list"; items: string[] }
+  | { k: "formula"; tex: string; label?: string }
+  | { k: "table"; caption: string; head: string[]; rows: string[][] }
+  | {
+      k: "chart";
+      caption: string;
+      kind: "bar" | "line";
+      xLabel: string;
+      yLabel: string;
+      categories: string[];
+      series: { name: string; values: number[] }[];
+    };
+
+export type Passage = {
+  id: string;
+  title: string;
+  field: string; // e.g. "Economics"
+  blocks: PassageBlock[];
+};
+
+export type PassageMcqItem = {
+  type: "passage-mcq";
+  id: string;
+  seed: number;
+  difficulty: Difficulty;
+  passage: Passage;
+  /** 1-based number of this question within its text */
+  number: number;
+  stem: string;
+  options: [string, string, string, string];
+  explanation: string;
+  rulesUsed: string[];
+};
+export type PassageMcqAnswer = number | null; // 0..3
+
+export type Item = FigureSequenceItem | EquationsItem | LatinSquareItem | PassageMcqItem;
+export type Answer = FigureSequenceAnswer | EquationsAnswer | LatinSquareAnswer | PassageMcqAnswer;
 
 /** Answer keys are kept apart from item content so they can stay server-side later. */
 export type AnswerKey =
   | { type: "figure-sequence"; correct: [number, number] }
   | { type: "equations"; correct: Record<string, number> }
-  | { type: "latin-square"; correct: LatinLetter };
+  | { type: "latin-square"; correct: LatinLetter }
+  | { type: "passage-mcq"; correct: number };
 
 export type GeneratedItem = { item: Item; key: AnswerKey };
 
 // ---------- Blueprint ----------
 export type SubtestSpec = {
   key: string;
+  module: "core" | "subject";
   title: string;
   itemType: ItemType;
   count: number;
