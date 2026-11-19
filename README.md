@@ -1,4 +1,4 @@
-# MockPilot – dMAT mock test platform
+# DMAT Mock Prep – dMAT mock tests, live classes and study in Germany
 
 Realistic, timed mock tests for the **dMAT** (digital Master Test) Core Module. Independent practice platform, not affiliated with g.a.s.t. or APS India.
 

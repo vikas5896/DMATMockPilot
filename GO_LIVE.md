@@ -5,7 +5,7 @@ Follow the steps in order. Steps marked **You** need your own accounts. Values m
 ## 0. Decide first
 
 - [ ] **Domain**: check the "dMAT" trademark question before buying a domain that contains it.
-- [ ] **Brand name** shown on the site (now the placeholder "MockPilot", set in `web/src/lib/brand.ts`).
+- [x] **Brand name**: "DMAT Mock Prep" (set in `web/src/lib/brand.ts`).
 - [ ] **Public contact details**: which email / phone / WhatsApp appear on the site (`BRAND.contact` in `web/src/lib/brand.ts`).
 - [ ] **Live batches**: real dates, fees, instructors (edit them later in the admin panel, or before launch).
 - [ ] **Privacy policy**: have the draft at `/privacy` reviewed.
@@ -18,18 +18,18 @@ Follow the steps in order. Steps marked **You** need your own accounts. Values m
 ## 2. Database: Neon (You)
 
 1. Sign up at neon.tech (Google/GitHub login is fine).
-2. **Create project** → name it e.g. `mockpilot` → region **AWS Asia Pacific (Mumbai)** → Postgres version: the default.
+2. **Create project** → name it e.g. `dmatmockprep` → region **AWS Asia Pacific (Mumbai)**, or **Singapore** if Mumbai is not offered → only the Postgres database service ON. Skip the "set up with your coding agent" prompt.
 3. On the project dashboard click **Connect** → turn **Connection pooling ON** → copy the connection string.
    📋 This is `DATABASE_URL` (it looks like `postgresql://user:password@ep-…-pooler.ap-south-1.aws.neon.tech/neondb?sslmode=require`). It contains a password: treat it as secret.
 
 ## 3. Email for login codes: Resend (You)
 
 1. Sign up at resend.com.
-2. **Domains → Add domain** → enter your domain (e.g. `dmatmockpilot.com`), region close to India if offered.
+2. **Domains → Add domain** → enter your domain (`dmatmockprep.com`), region close to India if offered.
 3. Resend shows 3–4 **DNS records** (TXT/MX for SPF and DKIM). Add each one at your domain registrar exactly as shown, then click **Verify** in Resend (can take minutes to hours).
 4. **API Keys → Create API key** (permission: "Sending access").
    📋 This is `RESEND_API_KEY` (starts with `re_`). Secret.
-5. Choose the sender, e.g. `MockPilot <login@your-domain.com>`. 📋 This is `EMAIL_FROM`.
+5. Choose the sender, e.g. `DMAT Mock Prep <login@dmatmockprep.com>`. 📋 This is `EMAIL_FROM`.
 
 ## 4. Hosting: Vercel (You, with the developer)
 
@@ -46,11 +46,11 @@ Follow the steps in order. Steps marked **You** need your own accounts. Values m
 | `ADMIN_EMAILS` | the admin emails, comma-separated (copy the line from your local `web/.env.local`) |
 | `AUTH_SECRET` | a **new** random value, generate it with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` |
 | `RESEND_API_KEY` | from step 3 |
-| `EMAIL_FROM` | from step 3, e.g. `MockPilot <login@your-domain.com>` |
+| `EMAIL_FROM` | from step 3, e.g. `DMAT Mock Prep <login@dmatmockprep.com>` |
 | `NEXT_PUBLIC_SITE_URL` | `https://www.your-domain.com` |
 
 5. Click **Deploy**. The build first updates the database tables, then builds the site.
-6. Project **Settings → Functions → Function Region**: choose **Mumbai (bom1)** so the site is fast in India and close to the Neon database.
+6. Project **Settings → Functions → Function Region**: choose the **same region as your Neon database**: **Singapore (sin1)** for a Singapore database, **Mumbai (bom1)** for a Mumbai one. Keeping them together makes every page faster.
 
 ## 5. Connect the domain (You)
 
