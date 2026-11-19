@@ -10,8 +10,8 @@ export const NAV = [
   { href: "/live-classes", label: "Live Classes" },
   { href: "/study-in-germany", label: "Study in Germany" },
   { href: "/dmat-guide", label: "dMAT Guide" },
-  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/account", label: "My tests" },
 ];
 
 export function SiteHeader() {
@@ -40,7 +40,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <Link
-          href="/test/full"
+          href="/test/full-1"
           className="ml-auto hidden rounded-md bg-white px-4 py-2 text-sm font-semibold text-brand hover:bg-brand-soft sm:block lg:ml-2"
         >
           Free mock test
@@ -74,7 +74,7 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link
-            href="/test/full"
+            href="/test/full-1"
             onClick={() => setOpen(false)}
             className="mt-2 block rounded-md bg-white px-3 py-2.5 text-center font-semibold text-brand"
           >

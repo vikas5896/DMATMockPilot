@@ -45,7 +45,7 @@ export default async function Home() {
         title="Your path to a Master's in Germany starts with the dMAT."
         intro="Practise with realistic mock tests, learn in live classes, and get guidance on every step of studying in Germany."
       >
-        <ButtonLink href="/test/full" variant="light">
+        <ButtonLink href="/test/full-1" variant="light">
           Start a free dMAT mock
         </ButtonLink>
         <ButtonLink href="/live-classes" variant="outline-light">

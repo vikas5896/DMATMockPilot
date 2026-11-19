@@ -78,34 +78,6 @@ export function newAttempt(kind: TestKind, seed: number): Attempt {
   };
 }
 
-const key = (kind: TestKind, seed: number) => `mp:attempt:${kind}:${seed}`;
-const activeKey = (kind: TestKind) => `mp:active:${kind}`;
-
-export function loadAttempt(kind: TestKind, seed: number): Attempt | null {
-  try {
-    const raw = localStorage.getItem(key(kind, seed));
-    const a = raw ? (JSON.parse(raw) as Attempt) : null;
-    if (a?.v !== 1) return null;
-    // content can grow (more Subject texts): drop attempts whose shape no longer matches
-    const subs = TESTS[kind].subtests;
-    if (a.answers.length !== subs.length || a.answers.some((x, i) => x.length !== subs[i].count)) return null;
-    return a;
-  } catch {
-    return null;
-  }
-}
-
-export function saveAttempt(a: Attempt) {
-  localStorage.setItem(key(a.kind, a.seed), JSON.stringify(a));
-  if (a.status === "finished") localStorage.removeItem(activeKey(a.kind));
-  else localStorage.setItem(activeKey(a.kind), String(a.seed));
-}
-
-export function activeSeed(kind: TestKind): number | null {
-  const s = localStorage.getItem(activeKey(kind));
-  return s ? Number(s) : null;
-}
-
 /** What happens when the running subtest ends (time up or End Subtest): next intro, the break, or the results. */
 export function afterSubtest(a: Attempt, now: number): Attempt {
   const test = TESTS[a.kind];

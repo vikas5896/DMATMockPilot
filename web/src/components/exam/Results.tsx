@@ -14,11 +14,11 @@ const DIFF_LABEL = { low: "Easy", medium: "Medium", high: "Hard" } as const;
 export function Results({
   attempt,
   items,
-  onNew,
+  title,
 }: {
   attempt: Attempt;
   items: GeneratedItem[][];
-  onNew: () => void;
+  title: string;
 }) {
   const test = TESTS[attempt.kind];
   const scores = test.subtests.map((_, s) =>
@@ -50,7 +50,7 @@ export function Results({
       </header>
       <main className="mx-auto max-w-5xl px-6 py-10">
         <p className="text-sm font-semibold uppercase tracking-wide text-brand">Your result</p>
-        <h1 className="mt-1 text-3xl font-bold">{test.title}</h1>
+        <h1 className="mt-1 text-3xl font-bold">{title}</h1>
         <p className="mt-3 text-5xl font-bold tabular-nums">
           {total}
           <span className="text-2xl text-zinc-400"> / {max}</span>
@@ -98,15 +98,11 @@ export function Results({
         </div>
 
         <div className="mt-8 flex gap-3">
-          <button
-            type="button"
-            onClick={onNew}
-            className="rounded-md bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark"
-          >
-            Take a new mock
-          </button>
-          <Link href="/" className="rounded-md border border-zinc-300 bg-white px-6 py-3 font-semibold">
-            Home
+          <Link href="/account" className="rounded-md bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark">
+            Back to my tests
+          </Link>
+          <Link href="/mock-tests" className="rounded-md border border-zinc-300 bg-white px-6 py-3 font-semibold">
+            All mock tests
           </Link>
         </div>
 

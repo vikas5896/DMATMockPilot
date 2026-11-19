@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type { Batch } from "@/content/site/batches";
 
 /** Enquiries from the website forms. */
@@ -36,6 +36,41 @@ export const loginCodes = pgTable("login_codes", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** Student accounts (sign-up with name, email, phone; login with an email code). */
+export const students = pgTable("students", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  phone: text("phone"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+});
+
+/**
+ * One row per student and test (e.g. "full-1"): each test can be taken once.
+ * `data` holds the whole attempt (answers, timers, progress) so it can be resumed on any device.
+ */
+export const attempts = pgTable(
+  "attempts",
+  {
+    id: serial("id").primaryKey(),
+    studentId: integer("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    testId: text("test_id").notNull(),
+    status: text("status").notNull().default("in_progress"), // in_progress | completed
+    data: jsonb("data").notNull(),
+    score: integer("score"),
+    maxScore: integer("max_score"),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("attempts_student_test").on(t.studentId, t.testId)],
+);
+
+export type Student = typeof students.$inferSelect;
+export type AttemptRow = typeof attempts.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export const LEAD_STATUSES = ["new", "contacted", "enrolled", "closed"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];

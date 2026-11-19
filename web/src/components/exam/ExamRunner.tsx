@@ -1,21 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { childSeed, randomSeed } from "@/lib/rng";
+import { childSeed } from "@/lib/rng";
 import { buildSubtest } from "@/lib/generators";
 import { isAnswered } from "@/lib/exam/scoring";
-import {
-  activeSeed,
-  afterSubtest,
-  loadAttempt,
-  newAttempt,
-  saveAttempt,
-  TESTS,
-  type Attempt,
-  type TestKind,
-} from "@/lib/exam/tests";
+import { afterSubtest, TESTS, type Attempt } from "@/lib/exam/tests";
+import { saveAttemptAction } from "@/app/test/actions";
 import type { Answer, EquationsItem, PassageMcqItem } from "@/lib/exam/types";
 import { SubjectTextView } from "@/components/subject/SubjectTextView";
 import { BRAND } from "@/lib/brand";
@@ -25,23 +16,21 @@ import { Results } from "./Results";
 
 const noopSubscribe = () => () => {};
 
-export function ExamRunner({ kind, seed }: { kind: TestKind; seed?: number }) {
-  const router = useRouter();
+/**
+ * Runs one test attempt. The attempt comes from the server (one per student and test) and is saved back
+ * while the student works: debounced while answering, immediately when a section starts or ends.
+ */
+export function ExamRunner({ testId, testTitle, initial }: { testId: string; testTitle: string; initial: Attempt }) {
   const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
-
-  // No seed in the URL: resume the active attempt for this test, or start a new one.
-  useEffect(() => {
-    if (seed == null) router.replace(`/test/${kind}?seed=${activeSeed(kind) ?? randomSeed()}`);
-  }, [kind, seed, router]);
-
-  if (!isClient || seed == null) return <div className="p-10 text-zinc-500">Preparing your test…</div>;
-  return <AttemptView kind={kind} seed={seed} />;
+  if (!isClient) return <div className="p-10 text-zinc-500">Preparing your test…</div>;
+  return <AttemptView testId={testId} testTitle={testTitle} initial={initial} />;
 }
 
-function AttemptView({ kind, seed }: { kind: TestKind; seed: number }) {
-  const router = useRouter();
-  const test = TESTS[kind];
-  const [attempt, setAttempt] = useState<Attempt>(() => loadAttempt(kind, seed) ?? newAttempt(kind, seed));
+function AttemptView({ testId, testTitle, initial }: { testId: string; testTitle: string; initial: Attempt }) {
+  const [attempt, setAttempt] = useState<Attempt>(initial);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const test = TESTS[attempt.kind];
+  const seed = attempt.seed;
 
   const items = useMemo(
     () => test.subtests.map((spec, i) => buildSubtest(spec, childSeed(seed, i + 1))),
@@ -49,23 +38,61 @@ function AttemptView({ kind, seed }: { kind: TestKind; seed: number }) {
   );
 
   const update = useCallback((fn: (a: Attempt) => Attempt) => {
-    setAttempt((prev) => {
-      const next = fn(structuredClone(prev));
-      saveAttempt(next);
-      return next;
-    });
+    setAttempt((prev) => fn(structuredClone(prev)));
   }, []);
+
+  // ---- saving to the server ----
+  const pending = useRef<Attempt | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const last = useRef<Attempt>(initial);
+
+  const flush = useCallback(async () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    const data = pending.current;
+    if (!data) return;
+    pending.current = null;
+    try {
+      const r = await saveAttemptAction(testId, data);
+      setSaveError(r.ok ? null : (r.error ?? "Could not save your answers."));
+    } catch {
+      setSaveError("Could not save your answers. Check your internet connection.");
+      pending.current = pending.current ?? data; // retry with the next change
+    }
+  }, [testId]);
+
+  useEffect(() => {
+    if (attempt === last.current) return;
+    const important = attempt.status !== last.current.status || attempt.stage !== last.current.stage;
+    last.current = attempt;
+    pending.current = attempt;
+    if (important) void flush();
+    else {
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => void flush(), 1500);
+    }
+  }, [attempt, flush]);
+
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden") void flush();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [flush]);
+
+  const banner = saveError && (
+    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-red-600 px-4 py-2 text-sm text-white shadow-lg">
+      {saveError}
+    </div>
+  );
 
   if (attempt.status === "finished") {
     return (
-      <Results
-        attempt={attempt}
-        items={items}
-        onNew={() => {
-          const s = randomSeed();
-          router.push(`/test/${kind}?seed=${s}`);
-        }}
-      />
+      <>
+        <Results attempt={attempt} items={items} title={testTitle} />
+        {banner}
+      </>
     );
   }
 
@@ -86,7 +113,7 @@ function AttemptView({ kind, seed }: { kind: TestKind; seed: number }) {
         <ExamHeader remainingMs={spec.timeSec * 1000} subtests={test.subtests} stage={attempt.stage} />
         <main className="mx-auto max-w-2xl flex-1 px-6 py-12">
           <p className="text-sm font-semibold uppercase tracking-wide text-brand">
-            Subtest {attempt.stage + 1} of {test.subtests.length}
+            {testTitle} · Part {attempt.stage + 1} of {test.subtests.length}
           </p>
           <h1 className="mt-1 text-3xl font-bold">{spec.title}</h1>
           <p className="mt-2 text-zinc-600">
@@ -106,6 +133,7 @@ function AttemptView({ kind, seed }: { kind: TestKind; seed: number }) {
           </div>
           <ul className="mt-6 list-disc space-y-1 pl-5 text-sm text-zinc-600">
             <li>The timer starts when you click Start and keeps running if you close the page.</li>
+            <li>You can take this test only once. Your answers are saved as you go, so you can continue on another device.</li>
             <li>When the time is up, or you end the subtest, it locks and you cannot return to it.</li>
             <li>No notes, no calculator. Guess rather than leave a blank: there is no negative marking.</li>
           </ul>
@@ -119,8 +147,8 @@ function AttemptView({ kind, seed }: { kind: TestKind; seed: number }) {
             Start {spec.title}
           </button>
           <p className="mt-6 text-xs text-zinc-400">
-            <Link href="/" className="underline">
-              Leave
+            <Link href="/account" className="underline">
+              Back to my tests
             </Link>{" "}
             · {BRAND.name} is an independent practice platform, not affiliated with g.a.s.t.
           </p>
@@ -129,7 +157,12 @@ function AttemptView({ kind, seed }: { kind: TestKind; seed: number }) {
     );
   }
 
-  return <RunningSubtest attempt={attempt} items={items} update={update} />;
+  return (
+    <>
+      <RunningSubtest attempt={attempt} items={items} update={update} />
+      {banner}
+    </>
+  );
 }
 
 function RunningSubtest({

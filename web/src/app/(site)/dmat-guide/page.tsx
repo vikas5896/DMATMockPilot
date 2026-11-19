@@ -24,7 +24,7 @@ export default function DmatGuidePage() {
         title="The dMAT, explained."
         intro="Everything you need to know about the digital Master Test before you start preparing: what it is, who needs it, how it is built and how to prepare."
       >
-        <ButtonLink href="/test/full" variant="light">
+        <ButtonLink href="/test/full-1" variant="light">
           Try a free mock
         </ButtonLink>
       </PageHero>
@@ -127,7 +127,7 @@ export default function DmatGuidePage() {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-12 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-bold">Ready to see where you stand?</h2>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href="/test/full" variant="light">
+            <ButtonLink href="/test/full-1" variant="light">
               Take a free mock
             </ButtonLink>
             <ButtonLink href="/live-classes" variant="outline-light">
