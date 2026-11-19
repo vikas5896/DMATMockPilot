@@ -8,7 +8,8 @@ import * as schema from "./schema";
  * - DATABASE_URL set (production, e.g. Neon/Supabase): connects with postgres-js.
  * - Not set (local development): PGlite, a real PostgreSQL running inside the app,
  *   stored in web/data/pglite (git-ignored). No installation or password needed.
- * Migrations in /drizzle are applied automatically on first use.
+ * Migrations in /drizzle: applied by scripts/migrate.mjs before each production build;
+ * the local PGlite database applies them itself on first use.
  */
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
@@ -21,9 +22,11 @@ async function connect(): Promise<Db> {
     const { default: postgres } = await import("postgres");
     const { drizzle } = await import("drizzle-orm/postgres-js");
     const { migrate } = await import("drizzle-orm/postgres-js/migrator");
-    const client = postgres(url, { max: 5, prepare: false });
+    // Serverless: keep few connections per instance; use the provider's *pooled* connection string.
+    const client = postgres(url, { max: 3, prepare: false, idle_timeout: 20, onnotice: () => {} });
     const db = drizzle(client, { schema });
-    await migrate(db, { migrationsFolder: MIGRATIONS });
+    // Migrations run once per deployment (scripts/migrate.mjs before `next build`), not on every start.
+    if (process.env.MIGRATE_ON_START === "1") await migrate(db, { migrationsFolder: MIGRATIONS });
     return db as unknown as Db;
   }
   const { PGlite } = await import("@electric-sql/pglite");

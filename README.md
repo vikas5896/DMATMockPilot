@@ -22,6 +22,10 @@ npm run dev     # http://localhost:3000
 npm test        # generator tests
 ```
 
+## Going live
+
+See [GO_LIVE.md](GO_LIVE.md) for the step-by-step checklist (domain, Neon, Resend, Vercel).
+
 ## Settings, database and admin panel
 
 1. Copy `web/.env.example` to `web/.env.local` and fill it in (never commit `.env.local`):
@@ -29,7 +33,7 @@ npm test        # generator tests
    - `AUTH_SECRET`: a long random string (the example file shows how to generate one)
    - `DATABASE_URL`: empty locally (a built-in PGlite database in `web/data/` is used); a PostgreSQL URL (Neon/Supabase) in production
    - `RESEND_API_KEY` and `EMAIL_FROM`: for emailing login codes; locally, codes are printed in the dev server console
-2. Database tables are created automatically on first start (migrations in `web/drizzle/`). After changing `src/db/schema.ts`, run `npx drizzle-kit generate`.
+2. Database tables: locally they are created on first start; in production `npm run build` applies migrations (`web/drizzle/`) first. After changing `src/db/schema.ts`, run `npm run db:generate`.
 3. Admin panel at `/admin`: enquiries (status, notes, CSV export) and live batches (add, edit, hide). Batch changes show on the website immediately.
 
 ## Structure
