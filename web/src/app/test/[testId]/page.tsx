@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ExamRunner } from "@/components/exam/ExamRunner";
 import { LockedTest } from "@/components/exam/LockedTest";
 import { currentStudent } from "@/lib/auth";
-import { getAttempt, getOrCreateAttempt } from "@/lib/attempt-store";
+import { attemptStarted, getAttempt, getOrCreateAttempt } from "@/lib/attempt-store";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { canAccess, listPacks, openRequests, packCovers } from "@/lib/access";
@@ -36,7 +36,7 @@ async function TestLoader({ params }: Props) {
   if (!me || !me.name || !me.phone) redirect(`/login?next=${encodeURIComponent(`/test/${test.id}`)}`);
 
   // texts for this test not written yet (an attempt started earlier may still be finished)
-  if (!test.available && !(await getAttempt(me.id, test.id))) return <ComingSoon title={test.title} />;
+  if (!test.available && !attemptStarted(await getAttempt(me.id, test.id))) return <ComingSoon title={test.title} />;
 
   if (!(await canAccess(me.id, test))) {
     const [packList, open] = await Promise.all([listPacks({ publishedOnly: true }), openRequests(me.id)]);

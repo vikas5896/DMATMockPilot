@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import { TestCatalog, type TestStatus } from "@/components/site/TestCatalog";
+import { TestCatalog } from "@/components/site/TestCatalog";
 import { requireStudent } from "@/lib/auth";
-import { listAttempts } from "@/lib/attempt-store";
+import { catalogStatuses, listAttempts } from "@/lib/attempt-store";
 import { activeGrants, listPacks, openRequests, unlockedKinds } from "@/lib/access";
 import Link from "next/link";
 import { studentLogoutAction } from "../login/actions";
@@ -18,8 +18,9 @@ export default function AccountPage() {
 
 async function Account() {
   const me = await requireStudent("/account");
-  const [rows, grantsActive, open, packList, kinds] = await Promise.all([
+  const [rows, statuses, grantsActive, open, packList, kinds] = await Promise.all([
     listAttempts(me.id),
+    catalogStatuses(me.id),
     activeGrants(me.id),
     openRequests(me.id),
     listPacks(),
@@ -27,9 +28,6 @@ async function Account() {
   ]);
   const packName = (slug: string) => packList.find((p) => p.slug === slug)?.name ?? slug;
   const fmt = (d: Date) => d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
-  const statuses: Record<string, TestStatus> = Object.fromEntries(
-    rows.map((r) => [r.testId, { status: r.status as TestStatus["status"], score: r.score, maxScore: r.maxScore }]),
-  );
   const done = rows.filter((r) => r.status === "completed").length;
 
   return (

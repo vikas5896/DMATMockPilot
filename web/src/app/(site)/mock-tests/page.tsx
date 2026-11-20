@@ -1,4 +1,9 @@
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { SUBJECT_MODULE } from "@/lib/exam/blueprint";
+import { currentStudent } from "@/lib/auth";
+import { catalogStatuses } from "@/lib/attempt-store";
+import { unlockedKinds } from "@/lib/access";
 import { ButtonLink, Faq, PageHero, Section } from "@/components/site/ui";
 import { TestCatalog } from "@/components/site/TestCatalog";
 import { pageMetadata } from "@/lib/seo";
@@ -28,9 +33,11 @@ export default function MockTestsPage() {
 
       <Section
         title="All mock tests"
-        intro="Test 1 of every type is free with an account (each can be taken once). Tests 2–10 are unlocked with a pack: request it, and we contact you with the payment details."
+        intro="Test 1 of every type is free with an account (each can be taken once). Tests 2–10 are unlocked with a pack. New full mocks and Academic Module tests are added regularly."
       >
-        <TestCatalog signedIn={false} />
+        <Suspense fallback={<TestCatalog signedIn={false} />}>
+          <PersonalCatalog />
+        </Suspense>
         <p className="mt-6 text-sm text-zinc-600">
           Full mock: Core Module (3 × 25 min), a 30-minute break, then the General Academic Module (10 texts,{" "}
           {SUBJECT_MODULE.count} questions, {SUBJECT_MODULE.timeSec / 60} min).
@@ -60,7 +67,7 @@ export default function MockTestsPage() {
           items={[
             {
               q: "Which tests are free?",
-              a: "Full Mock 1 and Test 1 of each section (Figure Sequences, Mathematical Equations, Latin Squares, General Academic Module) are free with an account. Each can be taken once. Tests 2–10 come with a paid pack, launching soon.",
+              a: "Full Mock 1 and Test 1 of each section (Figure Sequences, Mathematical Equations, Latin Squares, General Academic Module) are free with an account. Each can be taken once. Tests 2–10 come with a pack, which you can buy online on the Packs page.",
             },
             {
               q: "Why do I need an account?",
@@ -79,4 +86,13 @@ export default function MockTestsPage() {
       </Section>
     </>
   );
+}
+
+/** Signed in: the same catalogue as on My tests (progress, scores, unlocked packs). Otherwise the public view. */
+async function PersonalCatalog() {
+  await connection(); // per request: login and pack expiry use the current time
+  const me = await currentStudent();
+  if (!me || !me.name || !me.phone) return <TestCatalog signedIn={false} />;
+  const [statuses, kinds] = await Promise.all([catalogStatuses(me.id), unlockedKinds(me.id)]);
+  return <TestCatalog statuses={statuses} signedIn unlocked={[...kinds]} />;
 }

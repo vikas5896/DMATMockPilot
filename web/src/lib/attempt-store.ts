@@ -20,9 +20,34 @@ export async function listAttempts(studentId: number): Promise<AttemptRow[]> {
   return db.select().from(attempts).where(eq(attempts.studentId, studentId));
 }
 
+/** True once the student has clicked Start (opening the test page alone creates an attempt in "intro"). */
+export const attemptStarted = (row: AttemptRow | null | undefined) =>
+  !!row && (row.status === "completed" || (row.data as Attempt | null)?.status !== "intro");
+
+export type CatalogStatus = { status: "in_progress" | "completed"; score: number | null; maxScore: number | null };
+
+/** Status of every test the student has actually started, for the test catalogue. */
+export async function catalogStatuses(studentId: number): Promise<Record<string, CatalogStatus>> {
+  const rows = await listAttempts(studentId);
+  return Object.fromEntries(
+    rows
+      .filter((r) => attemptStarted(r))
+      .map((r) => [r.testId, { status: r.status as CatalogStatus["status"], score: r.score, maxScore: r.maxScore }]),
+  );
+}
+
 /** The student's attempt for this test; created on first visit (one per student and test). */
 export async function getOrCreateAttempt(studentId: number, test: CatalogTest): Promise<AttemptRow> {
   const existing = await getAttempt(studentId, test.id);
+  // only opened, never started, and made for different texts (e.g. before new texts were added): start fresh
+  if (existing && !attemptStarted(existing) && ((existing.data as Attempt).textSet ?? 1) !== test.textSet) {
+    const db = await getDb();
+    await db
+      .update(attempts)
+      .set({ data: newAttempt(test.kind, test.seed, test.textSet), updatedAt: new Date() })
+      .where(eq(attempts.id, existing.id));
+    return (await getAttempt(studentId, test.id))!;
+  }
   if (existing) return existing;
   const db = await getDb();
   await db
