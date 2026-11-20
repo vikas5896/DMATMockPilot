@@ -3,6 +3,7 @@ import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
+import { parseSource, SOURCE_COOKIE } from "@/lib/source";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { loginCodes, students, type Student } from "@/db/schema";
@@ -176,7 +177,8 @@ export async function verifyStudentCode(
   const email = rawEmail.trim().toLowerCase();
   if (!EMAIL_RE.test(email) || !(await checkCode(email, rawCode))) return { ok: false, error: WRONG_CODE };
   const db = await getDb();
-  await db.insert(students).values({ email }).onConflictDoNothing();
+  const source = parseSource((await cookies()).get(SOURCE_COOKIE)?.value);
+  await db.insert(students).values({ email, source }).onConflictDoNothing();
   const [s] = await db
     .update(students)
     .set({ lastLoginAt: new Date() })

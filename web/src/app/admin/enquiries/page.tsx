@@ -162,6 +162,7 @@ async function Enquiries({ searchParams }: { searchParams: SP }) {
                 <td className="px-4 py-3">
                   {INTERESTS[l.interest as Interest] ?? l.interest}
                   {l.batch && <p className="text-xs text-zinc-500">{batchTitle(l.batch)}</p>}
+                  {l.source && <p className="mt-1 text-xs text-zinc-500">From: {l.source}</p>}
                 </td>
                 <td className="max-w-md px-4 py-3">
                   {l.message && <p className="whitespace-pre-line text-zinc-700">{l.message}</p>}

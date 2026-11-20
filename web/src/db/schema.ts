@@ -11,6 +11,7 @@ export const leads = pgTable("leads", {
   interest: text("interest").notNull(),
   batch: text("batch"),
   message: text("message"),
+  source: text("source"), // where the visitor came from, see lib/source.ts
   /** new → contacted → enrolled / closed */
   status: text("status").notNull().default("new"),
   notes: text("notes"),
@@ -42,6 +43,7 @@ export const students = pgTable("students", {
   email: text("email").notNull().unique(),
   name: text("name"),
   phone: text("phone"),
+  source: text("source"), // where the visitor came from before signing up, see lib/source.ts
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
 });

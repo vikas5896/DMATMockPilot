@@ -69,6 +69,7 @@ async function StudentDetail({ params, searchParams }: Props) {
             {s.phone && <p>{s.phone}</p>}
             <p className="mt-2 text-xs text-zinc-500">
               Joined {fmt(s.createdAt)} · last login {fmt(s.lastLoginAt)}
+              {s.source ? ` · from ${s.source}` : ""}
             </p>
           </div>
           {s.phone && (

@@ -15,12 +15,12 @@ export async function GET() {
     return `"${s.replace(/"/g, '""')}"`;
   };
   const lines = [
-    ["joined", "name", "email", "phone", "last_login", "tests_completed", "results"].join(","),
+    ["joined", "name", "email", "phone", "last_login", "tests_completed", "results", "source"].join(","),
     ...rows.map((s) => {
       const mine = all.filter((a) => a.studentId === s.id);
       const done = mine.filter((a) => a.status === "completed");
       const results = mine.map((a) => `${a.testId}:${a.status === "completed" ? `${a.score}/${a.maxScore}` : "in progress"}`).join("; ");
-      return [s.createdAt, s.name, s.email, s.phone, s.lastLoginAt, done.length, results].map(cell).join(",");
+      return [s.createdAt, s.name, s.email, s.phone, s.lastLoginAt, done.length, results, s.source].map(cell).join(",");
     }),
   ];
   return new Response("﻿" + lines.join("\r\n"), {

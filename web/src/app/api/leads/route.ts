@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import { getDb } from "@/db";
 import { leads } from "@/db/schema";
 import { validateLead, type LeadInput } from "@/lib/leads";
+import { parseSource, SOURCE_COOKIE } from "@/lib/source";
 
 /** Saves website enquiries (live-class registrations, consultancy waitlist, contact) to the database. */
 export async function POST(request: Request) {
@@ -26,6 +28,7 @@ export async function POST(request: Request) {
       interest: body.interest!,
       batch: body.batch || null,
       message: body.message?.trim() || null,
+      source: parseSource((await cookies()).get(SOURCE_COOKIE)?.value),
     });
   } catch (e) {
     console.error("could not save lead", e);

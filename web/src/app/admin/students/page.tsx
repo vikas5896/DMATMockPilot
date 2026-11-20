@@ -6,6 +6,7 @@ import { getDb } from "@/db";
 import { attempts, students } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { parseTestId } from "@/lib/exam/catalog";
+import { sourceChannel } from "@/lib/source";
 
 export const metadata = { title: "Students" };
 type SP = Promise<{ [k: string]: string | string[] | undefined }>;
@@ -59,6 +60,8 @@ async function Students({ searchParams }: { searchParams: SP }) {
         )}
       </form>
 
+      {!q && <SourceSummary rows={rows} />}
+
       <p className="mb-2 text-sm text-zinc-500">{rows.length} student{rows.length === 1 ? "" : "s"}</p>
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-sm">
@@ -105,7 +108,10 @@ async function Students({ searchParams }: { searchParams: SP }) {
                       </span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{date(s.createdAt)}</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    <span className="whitespace-nowrap">{date(s.createdAt)}</span>
+                    {s.source && <span className="block max-w-48 text-xs text-zinc-500">From: {s.source}</span>}
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{date(s.lastLoginAt)}</td>
                   <td className="px-4 py-3">
                     {tests.length === 0 ? (
@@ -135,4 +141,46 @@ async function Students({ searchParams }: { searchParams: SP }) {
       </div>
     </AdminShell>
   );
+}
+
+/** Signups per channel (utm tag, promo code or referring site), all time and the last 7 days. */
+function SourceSummary({ rows }: { rows: { source: string | null; createdAt: Date }[] }) {
+  const weekAgo = sevenDaysAgo();
+  const counts = new Map<string, { all: number; week: number }>();
+  for (const r of rows) {
+    const k = sourceChannel(r.source);
+    const c = counts.get(k) ?? { all: 0, week: 0 };
+    c.all++;
+    if (r.createdAt.getTime() >= weekAgo) c.week++;
+    counts.set(k, c);
+  }
+  const list = [...counts].sort((a, b) => b[1].week - a[1].week || b[1].all - a[1].all);
+  if (list.length === 0) return null;
+  return (
+    <details className="mb-5 rounded-xl border border-zinc-200 bg-white p-4 text-sm" open>
+      <summary className="cursor-pointer font-semibold">Where students came from</summary>
+      <table className="mt-3 w-full max-w-xl">
+        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <tr>
+            <th className="py-1">Source</th>
+            <th className="py-1 text-right">Last 7 days</th>
+            <th className="py-1 text-right">All time</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-100">
+          {list.map(([k, c]) => (
+            <tr key={k}>
+              <td className="py-1">{k}</td>
+              <td className="py-1 text-right">{c.week}</td>
+              <td className="py-1 text-right">{c.all}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
+
+function sevenDaysAgo() {
+  return Date.now() - 7 * 86400_000;
 }

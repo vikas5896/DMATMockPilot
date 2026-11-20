@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const db = await getDb();
   const rows = await db.select().from(leads).where(where.length ? and(...where) : undefined).orderBy(desc(leads.createdAt));
 
-  const cols = ["createdAt", "name", "email", "phone", "interest", "batch", "status", "message", "notes"] as const;
+  const cols = ["createdAt", "name", "email", "phone", "interest", "batch", "status", "message", "notes", "source"] as const;
   const cell = (v: unknown) => {
     let s = v instanceof Date ? v.toISOString() : v == null ? "" : String(v);
     if (/^[=+\-@]/.test(s)) s = `'${s}`; // stop spreadsheets from running formulas
