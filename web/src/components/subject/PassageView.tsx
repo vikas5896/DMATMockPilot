@@ -1,7 +1,7 @@
 import type { Passage, PassageBlock } from "@/lib/exam/types";
 import { RichText, Tex } from "./RichText";
 
-const SERIES_COLORS = ["#8c0a55", "#3a7ca5"];
+export const SERIES_COLORS = ["#8c0a55", "#3a7ca5", "#d9822b"];
 
 function Chart({ block }: { block: Extract<PassageBlock, { k: "chart" }> }) {
   const W = 520, H = 260, left = 52, right = 16, top = 16, bottom = 52;

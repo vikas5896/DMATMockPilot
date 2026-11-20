@@ -57,6 +57,11 @@ describe("subject module content", () => {
         if (b.k === "chart") for (const s of b.series) expect(s.values).toHaveLength(b.categories.length);
   });
 
+  it("charts have at most 3 series, so every series gets its own colour", () => {
+    for (const t of ALL_TEXTS)
+      for (const b of t.passage.blocks) if (b.k === "chart") expect(b.series.length, t.passage.id).toBeLessThanOrEqual(3);
+  });
+
   it("tables have the same number of cells in every row as in the header", () => {
     for (const t of ALL_TEXTS)
       for (const b of t.passage.blocks) if (b.k === "table") for (const r of b.rows) expect(r, t.passage.id).toHaveLength(b.head.length);
