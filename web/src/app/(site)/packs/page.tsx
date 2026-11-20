@@ -5,6 +5,7 @@ import { Faq, PageHero, Section } from "@/components/site/ui";
 import { activeGrants, listPacks, openRequests } from "@/lib/access";
 import { currentStudent } from "@/lib/auth";
 import { paymentsEnabled } from "@/lib/payments";
+import { autoOffers } from "@/lib/promo";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -91,6 +92,7 @@ async function PackList() {
   const [list, me] = await Promise.all([listPacks({ publishedOnly: true }), currentStudent()]);
   const signedIn = !!(me?.name && me.phone);
   const [open, active] = signedIn ? await Promise.all([openRequests(me!.id), activeGrants(me!.id)]) : [[], []];
+  const offers = await autoOffers(list.map((p) => p.slug));
   const fmt = (d: Date) => d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -106,6 +108,7 @@ async function PackList() {
             from="/packs"
             highlight={i === list.length - 1}
             payOnline={paymentsEnabled()}
+            autoOffer={offers[p.slug]}
           />
         );
       })}

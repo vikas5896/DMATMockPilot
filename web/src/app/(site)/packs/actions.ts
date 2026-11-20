@@ -14,7 +14,7 @@ import {
 } from "@/lib/payments";
 import { verifyPaymentSignature } from "@/lib/razorpay-signature";
 import { normalizeCode } from "@/lib/pricing";
-import { checkPromo, type PromoCheck } from "@/lib/promo";
+import { resolvePromo, type ResolvedPromo } from "@/lib/promo";
 import { BRAND } from "@/lib/brand";
 import { notifyAdmins, sendEmail, signature } from "@/lib/email";
 
@@ -25,10 +25,13 @@ const waNumber = (phone: string) => {
   return d.length === 10 ? `91${d}` : d;
 };
 
-/** Check a promo code for a pack (no login needed, so visitors can see the discounted price). */
-export async function checkPromoAction(code: string, packSlug: string): Promise<PromoCheck> {
-  if (!normalizeCode(code)) return { ok: false, error: "Please enter a promo code." };
-  return checkPromo(code, packSlug);
+/**
+ * Check a promo code for a pack (no login needed, so visitors can see the price).
+ * Returns the offer that applies: the entered code, or the automatic offer if that is better.
+ */
+export async function checkPromoAction(code: string, packSlug: string): Promise<ResolvedPromo> {
+  if (!normalizeCode(code)) return { ok: false, error: "Please enter a promo code.", offer: null };
+  return resolvePromo(code, packSlug);
 }
 
 export async function requestAccessAction(
@@ -43,14 +46,11 @@ export async function requestAccessAction(
   if (!pack || !pack.published) return { ok: false, error: "This pack is not available." };
   const note = message.trim().slice(0, 1000) || null;
 
-  let code: string | null = null;
-  let quoted = pack.priceInr;
-  if (promoCode && normalizeCode(promoCode)) {
-    const check = await checkPromo(promoCode, pack.slug);
-    if (!check.ok) return { ok: false, error: check.error };
-    code = check.code;
-    quoted = check.finalPriceInr;
-  }
+  // the automatic offer, or the student's code if it is better (codes never stack)
+  const promo = await resolvePromo(promoCode, pack.slug);
+  if (!promo.ok) return { ok: false, error: promo.error };
+  const code = promo.offer?.code ?? null;
+  const quoted = promo.offer ? promo.offer.finalPriceInr : pack.priceInr;
 
   const created = await createRequest(me.id, pack.slug, note, code, quoted);
   if (!created) return { ok: true, already: true };
@@ -107,14 +107,10 @@ export async function createOrderAction(packSlug: string, promoCode?: string): P
   if (!pack || !pack.published || pack.priceInr == null) return { ok: false, error: "This pack cannot be bought online." };
   if ((await activeGrants(me.id)).some((g) => g.packSlug === pack.slug)) return { ok: false, error: "You already have this pack." };
 
-  let code: string | null = null;
-  let amount = pack.priceInr;
-  if (promoCode && normalizeCode(promoCode)) {
-    const check = await checkPromo(promoCode, pack.slug);
-    if (!check.ok) return { ok: false, error: check.error };
-    code = check.code;
-    amount = check.finalPriceInr;
-  }
+  const promo = await resolvePromo(promoCode, pack.slug);
+  if (!promo.ok) return { ok: false, error: promo.error };
+  const code = promo.offer?.code ?? null;
+  const amount = promo.offer ? promo.offer.finalPriceInr : pack.priceInr;
   if (amount < 1) return { ok: false, error: "With this code the pack is free: please use Request access and we unlock it for you." };
 
   try {

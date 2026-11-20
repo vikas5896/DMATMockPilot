@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { savePromoAction, type PromoFormState } from "@/app/admin/actions";
+import { deletePromoAction, savePromoAction, type PromoFormState } from "@/app/admin/actions";
 
 export type PromoInitial = {
   code: string;
@@ -11,6 +11,7 @@ export type PromoInitial = {
   active: boolean;
   maxUses: number | null;
   expiresOn: string | null;
+  autoApply: boolean;
 };
 
 const f = "mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand";
@@ -42,6 +43,9 @@ export function PromoForm({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-bold">
           {isNew ? "+ New promo code" : initial.code}
+          {initial?.autoApply && initial.active && (
+            <span className="ml-2 rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">automatic for everyone</span>
+          )}
           {initial && !initial.active && <span className="ml-2 rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">paused</span>}
         </h2>
         {stats && (
@@ -111,14 +115,39 @@ export function PromoForm({
         <input type="checkbox" name="active" defaultChecked={initial?.active ?? true} className="h-4 w-4 accent-[var(--brand)]" />
         Active (students can use it)
       </label>
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="autoApply" defaultChecked={initial?.autoApply ?? false} className="mt-0.5 h-4 w-4 accent-[var(--brand)]" />
+        <span>
+          Apply automatically to everyone
+          <span className="block text-xs text-zinc-500">
+            Only one code at a time. A code a student enters replaces it if it gives more discount (codes never stack).
+          </span>
+        </span>
+      </label>
       {state.error && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
           {state.error}
         </p>
       )}
-      <button disabled={pending} className="rounded-md bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60">
-        {pending ? "Saving…" : isNew ? "Create code" : "Save"}
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button disabled={pending} className="rounded-md bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60">
+          {pending ? "Saving…" : isNew ? "Create code" : "Save"}
+        </button>
+        {initial && (
+          <button
+            type="submit"
+            formAction={deletePromoAction}
+            formNoValidate
+            onClick={(e) => {
+              const warn = stats && stats.sales > 0 ? ` It has ${stats.sales} sale(s); they stay in the sales history.` : "";
+              if (!window.confirm(`Delete the code ${initial.code}? Students can no longer use it.${warn}`)) e.preventDefault();
+            }}
+            className="text-sm text-red-700 underline hover:text-red-900"
+          >
+            Delete code
+          </button>
+        )}
+      </div>
     </form>
   );
 }

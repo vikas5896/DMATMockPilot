@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PackCard } from "@/components/site/PackCard";
+import { PackCard, type Applied } from "@/components/site/PackCard";
 import type { Pack } from "@/db/schema";
 import { BRAND } from "@/lib/brand";
 import type { CatalogTest } from "@/lib/exam/catalog";
@@ -10,11 +10,14 @@ export function LockedTest({
   packs,
   requested,
   payOnline,
+  offers,
 }: {
   test: CatalogTest;
   packs: Pack[];
   requested: string[];
   payOnline?: boolean;
+  /** automatic offer per pack slug */
+  offers?: Record<string, Applied | null>;
 }) {
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -44,6 +47,7 @@ export function LockedTest({
               requested={requested.includes(p.slug)}
               from={`/test/${test.id}`}
               payOnline={payOnline}
+              autoOffer={offers?.[p.slug]}
               highlight={i === packs.length - 1}
             />
           ))}

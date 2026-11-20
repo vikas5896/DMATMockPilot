@@ -34,3 +34,11 @@ export function promoProblem(promo: PromoRule | null, packSlug: string, uses: nu
   if (promo.percentOff < 1 || promo.percentOff > 100) return "This promo code is not valid.";
   return null;
 }
+
+/**
+ * Codes never stack. With an automatic offer (e.g. PREP20 for everyone) and a code the student enters,
+ * the entered code replaces the automatic one, unless the automatic one gives at least as much discount.
+ */
+export function chooseOffer(enteredPercent: number, autoPercent: number | null): "entered" | "auto" {
+  return autoPercent != null && autoPercent >= enteredPercent ? "auto" : "entered";
+}

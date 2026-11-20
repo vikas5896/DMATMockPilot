@@ -24,7 +24,8 @@ export type PackInfo = {
 const months = (days: number) => (days % 30 === 0 ? `${days / 30} months` : `${days} days`);
 const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
-type Applied = { code: string; percentOff: number; finalPriceInr: number };
+/** The offer shown on the card: the automatic one (auto = true) or a code the student entered. */
+export type Applied = { code: string; percentOff: number; finalPriceInr: number; auto?: boolean };
 
 type RazorpayResponse = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
 type RazorpayInstance = { open(): void; on(event: "payment.failed", cb: (r: { error?: { description?: string } }) => void): void };
@@ -55,6 +56,7 @@ export function PackCard({
   from,
   highlight,
   payOnline,
+  autoOffer,
 }: {
   pack: PackInfo;
   signedIn: boolean;
@@ -64,6 +66,8 @@ export function PackCard({
   highlight?: boolean;
   /** Razorpay is set up: show "Pay now" (Request access stays as the other option) */
   payOnline?: boolean;
+  /** the automatic offer for everyone (e.g. PREP20), worked out on the server */
+  autoOffer?: Applied | null;
 }) {
   const router = useRouter();
   const [state, setState] = useState<"idle" | "done" | "already" | "error">(requested && !payOnline ? "already" : "idle");
@@ -75,8 +79,9 @@ export function PackCard({
   const [message, setMessage] = useState("");
   const [codeInput, setCodeInput] = useState("");
   const [showCode, setShowCode] = useState(false);
-  const [applied, setApplied] = useState<Applied | null>(null);
+  const [applied, setApplied] = useState<Applied | null>(autoOffer ?? null);
   const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeNote, setCodeNote] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [checking, startCheck] = useTransition();
   const wa = BRAND.contact.whatsapp;
@@ -85,14 +90,18 @@ export function PackCard({
     startCheck(async () => {
       const r = await checkPromoAction(raw, pack.slug);
       if (r.ok) {
-        setCodeInput(r.code);
-        setApplied({ code: r.code, percentOff: r.percentOff, finalPriceInr: r.finalPriceInr });
+        const o = r.offer;
+        setApplied(o ? { code: o.code, percentOff: o.percentOff, finalPriceInr: o.finalPriceInr, auto: o.auto } : null);
         setCodeError(null);
+        setCodeNote(silent ? null : (r.note ?? null));
+        setCodeInput("");
+        setShowCode(false);
         try {
-          localStorage.setItem(PROMO_KEY, r.code);
+          // remember an entered code (e.g. from an influencer link) for the other pages
+          if (o && !o.auto) localStorage.setItem(PROMO_KEY, o.code);
         } catch {}
       } else if (!silent) {
-        setApplied(null);
+        setCodeNote(null);
         setCodeError(r.error);
       }
     });
@@ -109,8 +118,9 @@ export function PackCard({
   }, []);
 
   const removeCode = () => {
-    setApplied(null);
+    setApplied(autoOffer ?? null); // back to the automatic offer, if there is one
     setCodeInput("");
+    setCodeNote(null);
     try {
       localStorage.removeItem(PROMO_KEY);
     } catch {}
@@ -195,19 +205,29 @@ export function PackCard({
       <p className="text-sm text-zinc-500">Access for {months(pack.validityDays)}</p>
       <p className="mt-4 flex-1 text-zinc-700">{pack.description}</p>
 
-      {/* promo code */}
+      {/* promo code: the automatic offer, or a code the student entered */}
       {!owned && !paid && pack.priceInr != null && state !== "done" && state !== "already" && (
         <div className="mt-4">
-          {applied ? (
-            <p className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              <span>
-                🎉 Code <strong>{applied.code}</strong> applied: {applied.percentOff}% off
-              </span>
-              <button type="button" onClick={removeCode} className="text-xs text-emerald-900 underline">
-                Remove
-              </button>
+          {applied && (
+            <p className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              {applied.auto ? (
+                <span>
+                  🏷️ Offer <strong>{applied.code}</strong>: {applied.percentOff}% off, applied automatically
+                </span>
+              ) : (
+                <span>
+                  🎉 Code <strong>{applied.code}</strong> applied: {applied.percentOff}% off
+                </span>
+              )}
+              {!applied.auto && (
+                <button type="button" onClick={removeCode} className="text-xs text-emerald-900 underline">
+                  Remove
+                </button>
+              )}
             </p>
-          ) : showCode || codeInput ? (
+          )}
+          {codeNote && <p className="mb-2 text-xs text-zinc-600">{codeNote}</p>}
+          {applied && !applied.auto ? null : showCode || codeInput ? (
             <div>
               <div className="flex gap-2">
                 <input
@@ -230,7 +250,7 @@ export function PackCard({
             </div>
           ) : (
             <button type="button" onClick={() => setShowCode(true)} className="text-sm text-brand underline">
-              Have a promo code?
+              {applied?.auto ? "Have another promo code?" : "Have a promo code?"}
             </button>
           )}
         </div>

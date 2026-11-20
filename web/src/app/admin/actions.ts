@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
@@ -223,10 +223,23 @@ export async function savePromoAction(prev: PromoFormState, fd: FormData): Promi
     active: fd.get("active") === "on",
     maxUses: maxRaw ? Number(maxRaw) : null,
     expiresOn: expiresOn || null,
+    autoApply: fd.get("autoApply") === "on",
   };
   const db = await getDb();
+  // only one code can be the automatic offer
+  if (values.autoApply) await db.update(promoCodes).set({ autoApply: false }).where(ne(promoCodes.code, code));
   await db.insert(promoCodes).values(values).onConflictDoUpdate({ target: promoCodes.code, set: values });
   redirect(`/admin/promo-codes?saved=${encodeURIComponent(code)}`);
+}
+
+/** Delete a code. Past requests and sales keep the code name in their history. */
+export async function deletePromoAction(fd: FormData) {
+  await requireAdmin();
+  const code = normalizeCode(String(fd.get("originalCode") ?? ""));
+  if (!code) return;
+  const db = await getDb();
+  await db.delete(promoCodes).where(eq(promoCodes.code, code));
+  redirect(`/admin/promo-codes?deleted=${encodeURIComponent(code)}`);
 }
 
 // ---------- Razorpay key check ----------

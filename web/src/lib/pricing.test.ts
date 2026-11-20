@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyDiscount, normalizeCode, promoProblem, todayInIndia, type PromoRule } from "./pricing";
+import { applyDiscount, chooseOffer, normalizeCode, promoProblem, todayInIndia, type PromoRule } from "./pricing";
 
 const rule: PromoRule = { active: true, percentOff: 50, packSlugs: [], maxUses: null, expiresOn: null };
 
@@ -30,5 +30,19 @@ describe("promo pricing", () => {
   it("uses the Indian date for expiry", () => {
     // 20:00 UTC on 19 Nov is already 20 Nov in India
     expect(todayInIndia(new Date("2026-11-19T20:00:00Z"))).toBe("2026-11-20");
+  });
+});
+
+describe("automatic offer and entered codes", () => {
+  it("an entered code with a bigger discount replaces the automatic offer", () => {
+    expect(chooseOffer(50, 20)).toBe("entered");
+    expect(applyDiscount(1599, 20)).toBe(1279);
+  });
+  it("the automatic offer stays when the entered code is not better", () => {
+    expect(chooseOffer(10, 20)).toBe("auto");
+    expect(chooseOffer(20, 20)).toBe("auto");
+  });
+  it("without an automatic offer, the entered code is used", () => {
+    expect(chooseOffer(10, null)).toBe("entered");
   });
 });

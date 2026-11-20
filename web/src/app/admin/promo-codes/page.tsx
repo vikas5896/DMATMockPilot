@@ -26,10 +26,16 @@ async function PromoCodes({ searchParams }: { searchParams: SP }) {
   return (
     <AdminShell email={email} active="/admin/promo-codes" title="Promo codes">
       {sp.saved && <p className="mb-4 rounded-md bg-emerald-50 px-4 py-2 text-sm text-emerald-800">Saved {String(sp.saved)}.</p>}
+      {sp.deleted && <p className="mb-4 rounded-md bg-zinc-100 px-4 py-2 text-sm text-zinc-700">Deleted {String(sp.deleted)}.</p>}
       <div className="mb-6 max-w-3xl space-y-2 text-sm text-zinc-600">
         <p>
           Give each influencer their own code. Their followers type it on the Packs page, or simply open the influencer
           link: the code is then applied automatically, even if they sign up first.
+        </p>
+        <p>
+          <strong>Automatic offer:</strong> tick &quot;Apply automatically to everyone&quot; on one code (e.g. PREP20) and every
+          visitor sees that discount without typing anything. If they enter another valid code with a bigger discount
+          (e.g. an influencer&apos;s 50 %), it replaces the automatic one.
         </p>
         <p>
           <strong>Requests</strong> = students who asked for a pack with the code. <strong>Sales</strong> = packs you
@@ -43,7 +49,7 @@ async function PromoCodes({ searchParams }: { searchParams: SP }) {
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <PromoForm packs={packList} siteUrl={SITE_URL} />
-        {[...promos].reverse().map((p) => (
+        {[...promos].reverse().sort((a, b) => Number(b.autoApply) - Number(a.autoApply)).map((p) => (
           <PromoForm
             key={p.code}
             packs={packList}
@@ -57,6 +63,7 @@ async function PromoCodes({ searchParams }: { searchParams: SP }) {
               active: p.active,
               maxUses: p.maxUses,
               expiresOn: p.expiresOn,
+              autoApply: p.autoApply,
             }}
           />
         ))}

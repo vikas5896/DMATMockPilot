@@ -8,6 +8,7 @@ import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { canAccess, listPacks, openRequests, packCovers } from "@/lib/access";
 import { paymentsEnabled } from "@/lib/payments";
+import { autoOffers } from "@/lib/promo";
 import { parseTestId } from "@/lib/exam/catalog";
 import { isTestKind, type Attempt } from "@/lib/exam/tests";
 
@@ -40,10 +41,13 @@ async function TestLoader({ params }: Props) {
 
   if (!(await canAccess(me.id, test))) {
     const [packList, open] = await Promise.all([listPacks({ publishedOnly: true }), openRequests(me.id)]);
+    const covering = packList.filter((p) => packCovers(p, test.kind));
+    const offers = await autoOffers(covering.map((p) => p.slug));
     return (
       <LockedTest
         test={test}
-        packs={packList.filter((p) => packCovers(p, test.kind))}
+        packs={covering}
+        offers={offers}
         requested={open.map((r) => r.packSlug)}
         payOnline={paymentsEnabled()}
       />

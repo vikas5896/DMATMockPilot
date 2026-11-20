@@ -127,6 +127,8 @@ export const promoCodes = pgTable("promo_codes", {
   active: boolean("active").notNull().default(true),
   maxUses: integer("max_uses"),
   expiresOn: text("expires_on"), // YYYY-MM-DD, last valid day (Indian time)
+  /** applied automatically to everyone (at most one code); another valid code with a bigger discount replaces it */
+  autoApply: boolean("auto_apply").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
