@@ -15,6 +15,7 @@ import { SET_C } from "./set-c";
 import { SET_D } from "./set-d";
 import { SET_E } from "./set-e";
 import { SET_F } from "./set-f";
+import { SET_G } from "./set-g";
 import type { SubjectText } from "./types";
 
 /** Set A (used by Academic Test 1 and Full Mock 1): 10 texts, numbered 1–10 in the exam footer. */
@@ -36,7 +37,7 @@ export const SET_A: SubjectText[] = [
  * Academic Test N and Full Mock N use set N. Tests without a written set show "Coming soon".
  * Every set must have 10 texts and 74 questions (same exam format).
  */
-export const SUBJECT_SETS: SubjectText[][] = [SET_A, SET_B, SET_C, SET_D, SET_E, SET_F];
+export const SUBJECT_SETS: SubjectText[][] = [SET_A, SET_B, SET_C, SET_D, SET_E, SET_F, SET_G];
 
 /** Kept for the blueprint (question count and timing are the same for every set). */
 export const SUBJECT_TEXTS = SET_A;
