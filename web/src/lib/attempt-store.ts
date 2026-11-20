@@ -27,7 +27,7 @@ export async function getOrCreateAttempt(studentId: number, test: CatalogTest): 
   const db = await getDb();
   await db
     .insert(attempts)
-    .values({ studentId, testId: test.id, data: newAttempt(test.kind, test.seed) })
+    .values({ studentId, testId: test.id, data: newAttempt(test.kind, test.seed, test.textSet) })
     .onConflictDoNothing();
   return (await getAttempt(studentId, test.id))!;
 }
@@ -45,7 +45,12 @@ export async function saveAttemptData(
   if (!row) return { ok: false, error: "Attempt not found." };
   if (row.status === "completed") return { ok: false, error: "This test is already completed." };
   const stored = row.data as Attempt;
-  if (data?.kind !== stored.kind || data?.seed !== stored.seed || !Array.isArray(data.answers)) {
+  if (
+    data?.kind !== stored.kind ||
+    data?.seed !== stored.seed ||
+    (data?.textSet ?? 1) !== (stored.textSet ?? 1) ||
+    !Array.isArray(data.answers)
+  ) {
     return { ok: false, error: "Invalid attempt data." };
   }
   const finished = data.status === "finished";

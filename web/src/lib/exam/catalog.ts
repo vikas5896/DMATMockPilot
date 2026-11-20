@@ -1,3 +1,4 @@
+import { SUBJECT_SET_COUNT } from "@/content/subject/set-count";
 import { TESTS, type TestKind } from "./tests";
 
 /**
@@ -18,7 +19,13 @@ export type CatalogTest = {
   free: boolean;
   seed: number;
   minutes: number;
+  /** which Academic Module text set this test uses (Full Mock N and Academic Test N use set N; others 1) */
+  textSet: number;
+  /** false while its Academic Module texts are not written yet: shown as "Coming soon" */
+  available: boolean;
 };
+
+const usesTexts = (kind: CatalogKind) => kind === "full" || kind === "subject";
 
 const KIND_TITLE: Record<CatalogKind, string> = {
   full: "Full dMAT Mock",
@@ -48,6 +55,8 @@ export function catalogTest(kind: CatalogKind, number: number): CatalogTest {
     free: FREE_NUMBERS.includes(number),
     seed: seedFor(id),
     minutes: minutesFor(kind),
+    textSet: usesTexts(kind) ? number : 1,
+    available: !usesTexts(kind) || number <= SUBJECT_SET_COUNT,
   };
 }
 

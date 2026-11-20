@@ -33,8 +33,8 @@ function AttemptView({ testId, testTitle, initial }: { testId: string; testTitle
   const seed = attempt.seed;
 
   const items = useMemo(
-    () => test.subtests.map((spec, i) => buildSubtest(spec, childSeed(seed, i + 1))),
-    [seed, test.subtests],
+    () => test.subtests.map((spec, i) => buildSubtest(spec, childSeed(seed, i + 1), attempt.textSet ?? 1)),
+    [seed, test.subtests, attempt.textSet],
   );
 
   const update = useCallback((fn: (a: Attempt) => Attempt) => {

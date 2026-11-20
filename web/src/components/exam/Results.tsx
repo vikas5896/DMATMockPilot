@@ -84,7 +84,7 @@ export function Results({
               </p>
               <div className="mt-3 flex gap-2 text-xs">
                 {(["low", "medium", "high"] as const).map((d) => {
-                  const idx = spec.difficultyPlan.map((x, i) => (x === d ? i : -1)).filter((i) => i >= 0);
+                  const idx = items[s].map((g, i) => (g.item.difficulty === d ? i : -1)).filter((i) => i >= 0);
                   const ok = idx.filter((i) => isCorrect(items[s][i].key, attempt.answers[s][i] ?? undefined)).length;
                   return (
                     <span key={d} className="rounded bg-zinc-100 px-2 py-1">

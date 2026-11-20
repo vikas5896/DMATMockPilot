@@ -18,8 +18,8 @@ export function generateItem(type: Generated, seed: number, difficulty: Difficul
 }
 
 /** Build every item of a subtest from one test seed (deterministic). */
-export function buildSubtest(spec: SubtestSpec, seed: number): GeneratedItem[] {
-  if (spec.itemType === "passage-mcq") return buildSubjectItems(seed);
+export function buildSubtest(spec: SubtestSpec, seed: number, textSet = 1): GeneratedItem[] {
+  if (spec.itemType === "passage-mcq") return buildSubjectItems(seed, textSet);
   return spec.difficultyPlan.map((d, i) =>
     generateItem(spec.itemType as Generated, childSeed(seed, i), d, spec.stylePlan?.[i]),
   );

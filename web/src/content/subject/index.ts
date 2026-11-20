@@ -10,10 +10,11 @@ import { POPULATION } from "./population";
 import { SOLUTIONS } from "./solutions";
 import { STATISTICS } from "./statistics";
 import { SURVEYS } from "./surveys";
+import { SET_B } from "./set-b";
 import type { SubjectText } from "./types";
 
-/** Mock set A: 10 texts, numbered 1–10 in the exam footer. Fields alternate so no two neighbours match. */
-export const SUBJECT_TEXTS: SubjectText[] = [
+/** Set A (used by Academic Test 1 and Full Mock 1): 10 texts, numbered 1–10 in the exam footer. */
+export const SET_A: SubjectText[] = [
   LOANS, // 1 Economics
   ENZYMES, // 2 Life Sciences
   CIRCUITS, // 3 Engineering
@@ -26,14 +27,26 @@ export const SUBJECT_TEXTS: SubjectText[] = [
   ALGORITHMS, // 10 Computer Science
 ];
 
+/**
+ * One set of 10 texts per test number: set 1 (A) for test 1, set 2 (B) for test 2, …
+ * Academic Test N and Full Mock N use set N. Tests without a written set show "Coming soon".
+ * Every set must have 10 texts and 74 questions (same exam format).
+ */
+export const SUBJECT_SETS: SubjectText[][] = [SET_A, SET_B];
+
+/** Kept for the blueprint (question count and timing are the same for every set). */
+export const SUBJECT_TEXTS = SET_A;
 export const SUBJECT_QUESTION_COUNT = SUBJECT_TEXTS.reduce((n, t) => n + t.questions.length, 0);
 
+export const hasSubjectSet = (set: number) => Number.isInteger(set) && set >= 1 && set <= SUBJECT_SETS.length;
+
 /**
- * Turn authored texts into exam items + answer keys.
+ * Turn the authored texts of one set into exam items + answer keys.
  * Options are shuffled per question from the test seed, so the correct letter is not predictable.
  */
-export function buildSubjectItems(seed: number): GeneratedItem[] {
-  return SUBJECT_TEXTS.flatMap((t, ti) =>
+export function buildSubjectItems(seed: number, set = 1): GeneratedItem[] {
+  const texts = SUBJECT_SETS[(hasSubjectSet(set) ? set : 1) - 1];
+  return texts.flatMap((t, ti) =>
     t.questions.map((q, i) => {
       const order = createRng(childSeed(seed, ti * 100 + i)).shuffle([0, 1, 2, 3]);
       const options = order.map((o) => q.options[o]) as [string, string, string, string];

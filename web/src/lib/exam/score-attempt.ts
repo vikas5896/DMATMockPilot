@@ -8,7 +8,7 @@ export function scoreAttempt(a: Attempt): { score: number; max: number } {
   let score = 0;
   let max = 0;
   TESTS[a.kind].subtests.forEach((spec, i) => {
-    const items = buildSubtest(spec, childSeed(a.seed, i + 1));
+    const items = buildSubtest(spec, childSeed(a.seed, i + 1), a.textSet ?? 1);
     const s = scoreSubtest(
       items.map((g) => g.key),
       (a.answers[i] ?? []).map((x) => x ?? undefined),

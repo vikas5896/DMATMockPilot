@@ -15,6 +15,17 @@ function TestTile({
   unlocked?: boolean;
 }) {
   const href = `/test/${t.id}`;
+  if (!t.available && !st) {
+    return (
+      <span
+        className="flex items-center justify-between rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-400"
+        title="New texts for this test are being written"
+      >
+        <span>{t.short}</span>
+        <span className="text-[11px] uppercase tracking-wide">Coming soon</span>
+      </span>
+    );
+  }
   if (!t.free && !unlocked) {
     return (
       <Link

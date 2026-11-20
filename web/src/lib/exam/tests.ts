@@ -53,6 +53,8 @@ export type Attempt = {
   v: 1;
   kind: TestKind;
   seed: number;
+  /** Academic Module text set (missing in attempts made before sets existed = set 1) */
+  textSet?: number;
   stage: number; // index of the current subtest
   status: "intro" | "running" | "break" | "finished";
   deadline: number | null; // epoch ms for the running subtest or the break
@@ -62,12 +64,13 @@ export type Attempt = {
   usedMs: number[]; // time used per subtest
 };
 
-export function newAttempt(kind: TestKind, seed: number): Attempt {
+export function newAttempt(kind: TestKind, seed: number, textSet = 1): Attempt {
   const subs = TESTS[kind].subtests;
   return {
     v: 1,
     kind,
     seed,
+    textSet,
     stage: 0,
     status: "intro",
     deadline: null,
