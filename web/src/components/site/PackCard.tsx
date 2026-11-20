@@ -27,7 +27,7 @@ const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 /** The offer shown on the card: the automatic one (auto = true) or a code the student entered. */
 export type Applied = { code: string; percentOff: number; finalPriceInr: number; auto?: boolean };
 
-type RazorpayResponse = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
+export type RazorpayResponse = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
 type RazorpayInstance = { open(): void; on(event: "payment.failed", cb: (r: { error?: { description?: string } }) => void): void };
 declare global {
   interface Window {
@@ -36,7 +36,7 @@ declare global {
 }
 
 /** Load Razorpay's checkout script once, only when someone clicks Pay. */
-function loadCheckout(): Promise<boolean> {
+export function loadCheckout(): Promise<boolean> {
   if (window.Razorpay) return Promise.resolve(true);
   return new Promise((resolve) => {
     const s = document.createElement("script");

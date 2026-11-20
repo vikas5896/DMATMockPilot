@@ -69,6 +69,13 @@ export function BatchForm({ initial, originalSlug }: { initial: BatchFields; ori
             <span className={hint}>Empty = &ldquo;Announced soon&rdquo;</span>
           </label>
           <label className={label}>
+            Online price (₹)
+            <input name="priceInr" inputMode="numeric" defaultValue={v.priceInr} className={f} placeholder="e.g. 4999" />
+            <span className={hint}>
+              Set a price to let students pay online (Razorpay) and use promo codes. Empty = registration form only (e.g. free webinars).
+            </span>
+          </label>
+          <label className={label}>
             Start date
             <input name="start" type="date" defaultValue={v.start} className={f} required />
           </label>

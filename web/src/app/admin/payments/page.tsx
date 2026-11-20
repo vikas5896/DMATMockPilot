@@ -5,6 +5,7 @@ import { AdminShell, Loading } from "@/components/admin/AdminShell";
 import { getDb } from "@/db";
 import { payments, students } from "@/db/schema";
 import { listPacks } from "@/lib/access";
+import { listAllBatches } from "@/lib/batch-store";
 import { requireAdmin } from "@/lib/auth";
 import { keyReport, paymentsEnabled, razorpayKeyId } from "@/lib/payments";
 import { testRazorpayAction } from "@/app/admin/actions";
@@ -32,7 +33,7 @@ async function Payments({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const filter = sp.status === "all" ? "all" : "paid";
   const db = await getDb();
-  const [rows, packList] = await Promise.all([
+  const [rows, packList, classList] = await Promise.all([
     db
       .select({ p: payments, s: students })
       .from(payments)
@@ -40,11 +41,15 @@ async function Payments({ searchParams }: { searchParams: SP }) {
       .orderBy(desc(payments.createdAt))
       .limit(1000),
     listPacks(),
+    listAllBatches(),
   ]);
   const shown = filter === "all" ? rows : rows.filter(({ p }) => p.status === "paid");
   const paid = rows.filter(({ p }) => p.status === "paid");
   const revenue = paid.reduce((a, { p }) => a + p.amountInr, 0);
-  const packName = (slug: string) => packList.find((p) => p.slug === slug)?.name ?? slug;
+  const itemName = (p: { packSlug: string | null; classSlug: string | null }) =>
+    p.classSlug
+      ? `Live class: ${classList.find((b) => b.slug === p.classSlug)?.title ?? p.classSlug}`
+      : (packList.find((x) => x.slug === p.packSlug)?.name ?? p.packSlug ?? "-");
   const fmt = (d: Date) =>
     d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const mode = razorpayKeyId().startsWith("rzp_live_") ? "live" : razorpayKeyId() ? "test" : null;
@@ -83,7 +88,7 @@ async function Payments({ searchParams }: { searchParams: SP }) {
             <tr>
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3">Student</th>
-              <th className="px-4 py-3">Pack</th>
+              <th className="px-4 py-3">Item</th>
               <th className="px-4 py-3">Amount</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Razorpay</th>
@@ -106,7 +111,7 @@ async function Payments({ searchParams }: { searchParams: SP }) {
                   </Link>
                   <p className="text-xs text-zinc-500">{s.phone}</p>
                 </td>
-                <td className="px-4 py-3">{packName(p.packSlug)}</td>
+                <td className="px-4 py-3">{itemName(p)}</td>
                 <td className="whitespace-nowrap px-4 py-3">
                   ₹{p.amountInr.toLocaleString("en-IN")}
                   {p.promoCode && (

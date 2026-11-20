@@ -22,6 +22,7 @@ const EMPTY: BatchFields = {
   sessions: "12",
   sessionLength: "90 min",
   fee: "",
+  priceInr: "",
   instructor: "",
   status: "soon",
   includes: "",

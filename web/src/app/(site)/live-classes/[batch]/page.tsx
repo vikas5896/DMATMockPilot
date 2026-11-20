@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
-import { formatRange } from "@/content/site/batches";
+import { formatRange, type Batch } from "@/content/site/batches";
+import { ClassPayCard } from "@/components/site/ClassPayCard";
+import { currentStudent } from "@/lib/auth";
+import { isEnrolled, paymentsEnabled } from "@/lib/payments";
+import { autoOffers } from "@/lib/promo";
 import { getPublicBatch, getPublicBatches } from "@/lib/batch-store";
 import { statusBadge } from "@/components/site/BatchCard";
 import { LeadForm } from "@/components/site/LeadForm";
@@ -43,7 +48,7 @@ async function BatchContent({ params }: Props) {
     ["Sessions", `${b.sessions} × ${b.sessionLength}`],
     ["Format", "Live online, with recordings"],
     ["Instructor", b.instructor ?? "To be announced"],
-    ["Fee", b.fee ?? "Announced soon"],
+    ["Fee", b.priceInr ? `₹${b.priceInr.toLocaleString("en-IN")}` : (b.fee ?? "Announced soon")],
   ];
 
   return (
@@ -119,8 +124,14 @@ async function BatchContent({ params }: Props) {
               ))}
             </dl>
             <div id="register">
-              <h2 className="mb-3 text-xl font-bold">{b.status === "soon" ? "Get notified" : "Register your interest"}</h2>
-              {b.status === "full" ? (
+              <h2 className="mb-3 text-xl font-bold">
+                {b.status === "soon" ? "Get notified" : b.priceInr && b.status === "open" ? "Book your seat" : "Register your interest"}
+              </h2>
+              {b.priceInr && b.status === "open" ? (
+                <Suspense fallback={<p className="text-zinc-500">Loading…</p>}>
+                  <PaidRegistration b={b} />
+                </Suspense>
+              ) : b.status === "full" ? (
                 <p className="rounded-xl border border-zinc-200 p-5 text-zinc-600">
                   This batch is full. Please choose another batch or contact us for the waiting list.
                 </p>
@@ -138,5 +149,30 @@ async function BatchContent({ params }: Props) {
         </div>
       </Section>
     </>
+  );
+}
+
+function Enquiry({ b, label }: { b: Batch; label: string }) {
+  return <LeadForm defaultInterest="live-classes" fixedInterest batch={b.slug} batchTitle={b.title} submitLabel={label} />;
+}
+
+/** Paid class: book a seat online (Razorpay) with promo codes; the enquiry form stays as an alternative. */
+async function PaidRegistration({ b }: { b: Batch }) {
+  await connection(); // per request: login and offers depend on the visitor and the current date
+  const me = await currentStudent();
+  const signedIn = !!(me?.name && me.phone);
+  const item = { kind: "class" as const, slug: b.slug };
+  const [offers, enrolled] = await Promise.all([autoOffers([item]), signedIn ? isEnrolled(me!.id, b.slug) : Promise.resolve(false)]);
+  return (
+    <ClassPayCard
+      slug={b.slug}
+      title={b.title}
+      priceInr={b.priceInr!}
+      autoOffer={offers[b.slug]}
+      signedIn={signedIn}
+      enrolled={enrolled}
+      payOnline={paymentsEnabled()}
+      enquiry={<Enquiry b={b} label="Send enquiry" />}
+    />
   );
 }

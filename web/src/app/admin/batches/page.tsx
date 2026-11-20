@@ -4,6 +4,8 @@ import { AdminShell, Loading } from "@/components/admin/AdminShell";
 import { formatRange } from "@/content/site/batches";
 import { requireAdmin } from "@/lib/auth";
 import { listAllBatches } from "@/lib/batch-store";
+import { listEnrollments } from "@/lib/payments";
+import { WA, waLink } from "@/lib/wa-templates";
 
 export const metadata = { title: "Live batches" };
 type SP = Promise<{ [k: string]: string | string[] | undefined }>;
@@ -21,7 +23,8 @@ const STATUS = { open: "Registrations open", soon: "Opening soon", full: "Full" 
 async function Batches({ searchParams }: { searchParams: SP }) {
   const email = await requireAdmin();
   const sp = await searchParams;
-  const batches = await listAllBatches();
+  const [batches, enrolments] = await Promise.all([listAllBatches(), listEnrollments()]);
+  const enrolledIn = (slug: string) => enrolments.filter((r) => r.e.classSlug === slug);
 
   return (
     <AdminShell
@@ -50,7 +53,9 @@ async function Batches({ searchParams }: { searchParams: SP }) {
             <tr>
               <th className="px-4 py-3">Batch</th>
               <th className="px-4 py-3">Dates</th>
-              <th className="px-4 py-3">Fee</th>
+              <th className="px-4 py-3">Fee shown</th>
+              <th className="px-4 py-3">Online price</th>
+              <th className="px-4 py-3">Enrolled</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">On website</th>
               <th className="px-4 py-3" />
@@ -65,6 +70,43 @@ async function Batches({ searchParams }: { searchParams: SP }) {
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">{formatRange(b.start, b.end)}</td>
                 <td className="px-4 py-3">{b.fee ?? <span className="text-zinc-400">not set</span>}</td>
+                <td className="whitespace-nowrap px-4 py-3">
+                  {b.priceInr ? `₹${b.priceInr.toLocaleString("en-IN")}` : <span className="text-zinc-400">no online payment</span>}
+                </td>
+                <td className="px-4 py-3">
+                  {enrolledIn(b.slug).length === 0 ? (
+                    <span className="text-zinc-400">0</span>
+                  ) : (
+                    <details>
+                      <summary className="cursor-pointer font-semibold text-brand">{enrolledIn(b.slug).length} paid</summary>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {enrolledIn(b.slug).map(({ e, s }) => (
+                          <li key={e.id}>
+                            <Link href={`/admin/students/${s.id}`} className="font-medium hover:text-brand">
+                              {s.name ?? s.email}
+                            </Link>{" "}
+                            · {e.amountInr != null ? `₹${e.amountInr}` : "-"}
+                            {e.promoCode ? ` · ${e.promoCode}` : ""}
+                            {s.phone && (
+                              <>
+                                {" "}
+                                ·{" "}
+                                <a
+                                  href={waLink(s.phone, WA.classLink(s.name, b.title))}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-emerald-700 underline"
+                                >
+                                  WhatsApp
+                                </a>
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </td>
                 <td className="px-4 py-3">{STATUS[b.status]}</td>
                 <td className="px-4 py-3">{b.published ? "Shown" : <span className="text-zinc-400">Hidden</span>}</td>
                 <td className="px-4 py-3 text-right">

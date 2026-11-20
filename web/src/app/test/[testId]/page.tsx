@@ -42,7 +42,7 @@ async function TestLoader({ params }: Props) {
   if (!(await canAccess(me.id, test))) {
     const [packList, open] = await Promise.all([listPacks({ publishedOnly: true }), openRequests(me.id)]);
     const covering = packList.filter((p) => packCovers(p, test.kind));
-    const offers = await autoOffers(covering.map((p) => p.slug));
+    const offers = await autoOffers(covering.map((p) => ({ kind: "pack" as const, slug: p.slug })));
     return (
       <LockedTest
         test={test}

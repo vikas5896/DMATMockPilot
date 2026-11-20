@@ -129,6 +129,9 @@ export const promoCodes = pgTable("promo_codes", {
   expiresOn: text("expires_on"), // YYYY-MM-DD, last valid day (Indian time)
   /** applied automatically to everyone (at most one code); another valid code with a bigger discount replaces it */
   autoApply: boolean("auto_apply").notNull().default(false),
+  /** true = valid for all packs and live classes; false = only for the ticked packs (packSlugs) and classes (classSlugs) */
+  appliesToAll: boolean("applies_to_all").notNull().default(true),
+  classSlugs: jsonb("class_slugs").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -151,7 +154,9 @@ export const payments = pgTable("payments", {
   studentId: integer("student_id")
     .notNull()
     .references(() => students.id, { onDelete: "cascade" }),
-  packSlug: text("pack_slug").notNull(),
+  /** what was bought: a pack or a live class */
+  packSlug: text("pack_slug"),
+  classSlug: text("class_slug"),
   promoCode: text("promo_code"),
   amountInr: integer("amount_inr").notNull(),
   /** created → paid / failed */
@@ -162,3 +167,22 @@ export const payments = pgTable("payments", {
   paidAt: timestamp("paid_at", { withTimezone: true }),
 });
 export type Payment = typeof payments.$inferSelect;
+
+/** Students enrolled in a live class (after online payment, or added by an admin). One per student and class. */
+export const classEnrollments = pgTable(
+  "class_enrollments",
+  {
+    id: serial("id").primaryKey(),
+    studentId: integer("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    classSlug: text("class_slug").notNull(),
+    amountInr: integer("amount_inr"),
+    promoCode: text("promo_code"),
+    paymentRef: text("payment_ref"),
+    source: text("source").notNull().default("online"), // online | admin
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("class_enrollments_student_class").on(t.studentId, t.classSlug)],
+);
+export type ClassEnrollment = typeof classEnrollments.$inferSelect;

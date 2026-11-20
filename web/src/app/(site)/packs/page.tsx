@@ -92,7 +92,7 @@ async function PackList() {
   const [list, me] = await Promise.all([listPacks({ publishedOnly: true }), currentStudent()]);
   const signedIn = !!(me?.name && me.phone);
   const [open, active] = signedIn ? await Promise.all([openRequests(me!.id), activeGrants(me!.id)]) : [[], []];
-  const offers = await autoOffers(list.map((p) => p.slug));
+  const offers = await autoOffers(list.map((p) => ({ kind: "pack" as const, slug: p.slug })));
   const fmt = (d: Date) => d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
   return (
     <div className="grid gap-6 md:grid-cols-2">

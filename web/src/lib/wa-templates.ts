@@ -19,6 +19,8 @@ export const WA = {
     `Hi ${first(name)}, thank you for requesting the ${BRAND.name} ${pack}${p != null ? ` (${price(p)}${code ? ` with code ${code}` : ""})` : ""}. 🙏 You can pay by UPI or bank transfer; I will share the details here. Once the payment is done, please send a screenshot and I will unlock your tests right away.`,
   unlocked: (name: string | null, pack: string) =>
     `Hi ${first(name)}, your ${pack} is now active! ✅ Log in at ${BRAND.name} and open "My tests" to start. All the best for your preparation!`,
+  classLink: (name: string | null, cls: string) =>
+    `Hi ${first(name)}, thank you for booking "${cls}" with ${BRAND.name}! 🎓 Here is your joining link: [paste link]. See you in the session!`,
   result: (name: string | null, test: string, score: string) =>
     `Hi ${first(name)}, I saw you completed ${test} (${score}). Would you like a quick call to go through your result and plan your preparation?`,
 };

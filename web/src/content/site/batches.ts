@@ -17,6 +17,8 @@ export type Batch = {
   sessions: number;
   sessionLength: string;
   fee?: string;
+  /** price for online payment in ₹; empty = no online payment (free class or enquiry only) */
+  priceInr?: number;
   instructor?: string;
   status: "open" | "soon" | "full";
   includes: string[];

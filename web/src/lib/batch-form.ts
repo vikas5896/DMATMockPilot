@@ -14,6 +14,7 @@ export type BatchFields = Record<
   | "sessions"
   | "sessionLength"
   | "fee"
+  | "priceInr"
   | "instructor"
   | "status"
   | "includes"
@@ -55,6 +56,7 @@ export function batchToFields(b: Batch & { sort?: number; published?: boolean })
     sessions: String(b.sessions),
     sessionLength: b.sessionLength,
     fee: b.fee ?? "",
+    priceInr: b.priceInr ? String(b.priceInr) : "",
     instructor: b.instructor ?? "",
     status: b.status,
     includes: b.includes.join("\n"),
@@ -82,6 +84,9 @@ export function fieldsToBatch(
   if (!f.days.trim() || !f.time.trim()) errors.push("Days and time are required.");
   const sessions = Number(f.sessions);
   if (!Number.isInteger(sessions) || sessions < 1 || sessions > 500) errors.push("Sessions must be a whole number.");
+  const priceRaw = (f.priceInr ?? "").replace(/[^\d]/g, "");
+  const priceInr = priceRaw ? Number(priceRaw) : undefined;
+  if (priceInr !== undefined && (priceInr < 1 || priceInr > 1000000)) errors.push("Online price must be between ₹1 and ₹10,00,000, or empty.");
   const sort = Number(f.sort || 0);
   if (!Number.isFinite(sort)) errors.push("Order must be a number.");
   const includes = f.includes.split(/\r?\n/).map((l) => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
@@ -103,6 +108,7 @@ export function fieldsToBatch(
       sessions,
       sessionLength: f.sessionLength.trim() || "90 min",
       fee: f.fee.trim() || undefined,
+      priceInr,
       instructor: f.instructor.trim() || undefined,
       status: f.status as Batch["status"],
       includes,
@@ -128,6 +134,7 @@ export function formDataToFields(fd: FormData): BatchFields {
     sessions: g("sessions"),
     sessionLength: g("sessionLength"),
     fee: g("fee"),
+    priceInr: g("priceInr"),
     instructor: g("instructor"),
     status: g("status"),
     includes: g("includes"),

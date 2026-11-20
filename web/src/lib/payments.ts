@@ -1,8 +1,10 @@
 import "server-only";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { getDb } from "@/db";
-import { accessRequests, grants, payments, students, type Payment } from "@/db/schema";
+import { accessRequests, classEnrollments, grants, payments, students, type Payment } from "@/db/schema";
 import { getPack } from "@/lib/access";
+import { getStoredBatch } from "@/lib/batch-store";
+import { formatRange } from "@/content/site/batches";
 import { BRAND } from "@/lib/brand";
 import { notifyAdmins, sendEmail, signature } from "@/lib/email";
 import { SITE_URL } from "@/lib/site";
@@ -56,7 +58,14 @@ export async function createRazorpayOrder(amountInr: number, receipt: string, no
   return data.id;
 }
 
-export async function recordOrder(v: { orderId: string; studentId: number; packSlug: string; promoCode: string | null; amountInr: number }) {
+export async function recordOrder(v: {
+  orderId: string;
+  studentId: number;
+  packSlug?: string | null;
+  classSlug?: string | null;
+  promoCode: string | null;
+  amountInr: number;
+}) {
   const db = await getDb();
   await db.insert(payments).values(v);
 }
@@ -100,6 +109,12 @@ export async function fulfillPayment(orderId: string, paymentId: string, paidAmo
     .returning();
   if (!claimed) return "already";
 
+  if (claimed.classSlug) {
+    await enrolInClass(claimed.studentId, claimed.classSlug, claimed.amountInr, claimed.promoCode, paymentId);
+    return "granted";
+  }
+  if (!claimed.packSlug) return "unknown";
+
   const pack = await getPack(claimed.packSlug);
   const days = pack?.validityDays ?? 180;
   const expiresAt = new Date(Date.now() + days * 24 * 3600 * 1000);
@@ -124,7 +139,7 @@ export async function fulfillPayment(orderId: string, paymentId: string, paidAmo
     .where(
       and(
         eq(accessRequests.studentId, claimed.studentId),
-        eq(accessRequests.packSlug, claimed.packSlug),
+        eq(accessRequests.packSlug, claimed.packSlug!),
         inArray(accessRequests.status, ["new", "contacted", "paid"]),
       ),
     );
@@ -160,4 +175,65 @@ export async function fulfillPayment(orderId: string, paymentId: string, paidAmo
     ]),
   ]);
   return "granted";
+}
+
+/** A paid live class: enrol the student (once) and confirm by email to the student and the admins. */
+async function enrolInClass(studentId: number, classSlug: string, amountInr: number, promoCode: string | null, paymentId: string) {
+  const db = await getDb();
+  await db
+    .insert(classEnrollments)
+    .values({ studentId, classSlug, amountInr, promoCode, paymentRef: `Razorpay ${paymentId}`, source: "online" })
+    .onConflictDoNothing();
+  const [[s], b] = await Promise.all([db.select().from(students).where(eq(students.id, studentId)), getStoredBatch(classSlug)]);
+  const title = b?.title ?? classSlug;
+  const when = b ? `${formatRange(b.start, b.end)}, ${b.days}, ${b.time}` : "";
+  const price = `${rupees(amountInr)}${promoCode ? ` with code ${promoCode}` : ""}`;
+  await Promise.all([
+    s &&
+      sendEmail({
+        to: s.email,
+        subject: `You're enrolled: ${title}`,
+        text: [
+          `Hi ${(s.name ?? "").split(" ")[0] || "there"},`,
+          "",
+          `Thank you for your payment of ${price}. Your seat in "${title}" is confirmed.`,
+          when ? `When: ${when}` : "",
+          "We will send you the joining link on WhatsApp before the first session.",
+          `Details: ${SITE_URL}/live-classes/${classSlug}`,
+          "",
+          `Payment ID: ${paymentId}`,
+          signature(),
+        ]
+          .filter((l) => l !== "")
+          .join("\n"),
+        replyTo: BRAND.contact.email || undefined,
+      }),
+    notifyAdmins(`New enrolment: ${title} – ${s?.name ?? "student"} (${rupees(amountInr)})`, [
+      `${s?.name ?? "A student"} paid ${price} for the live class "${title}".`,
+      `Email: ${s?.email ?? "-"}`,
+      `Phone: ${s?.phone ?? "-"}`,
+      `Razorpay payment: ${paymentId}`,
+      promoCode ? `Promo code: ${promoCode}` : "",
+      "Remember to send the joining link on WhatsApp.",
+    ]),
+  ]);
+}
+
+/** Students enrolled in a class (for the admin panel). */
+export async function listEnrollments(classSlug?: string) {
+  const db = await getDb();
+  const q = db
+    .select({ e: classEnrollments, s: students })
+    .from(classEnrollments)
+    .innerJoin(students, eq(students.id, classEnrollments.studentId));
+  return classSlug ? q.where(eq(classEnrollments.classSlug, classSlug)) : q;
+}
+
+export async function isEnrolled(studentId: number, classSlug: string): Promise<boolean> {
+  const db = await getDb();
+  const [r] = await db
+    .select({ id: classEnrollments.id })
+    .from(classEnrollments)
+    .where(and(eq(classEnrollments.studentId, studentId), eq(classEnrollments.classSlug, classSlug)));
+  return !!r;
 }

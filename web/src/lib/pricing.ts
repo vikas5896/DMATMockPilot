@@ -16,21 +16,41 @@ export function todayInIndia(now = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(now);
 }
 
+/** Something that can be bought: a test pack or a live class. */
+export type Item = { kind: "pack" | "class"; slug: string };
+
+/** "pack:full-pack" / "class:core-crash-course-jan"; a bare slug means a pack (older links). */
+export function parseItem(key: string): Item {
+  const m = /^(pack|class):(.+)$/.exec(key);
+  return m ? { kind: m[1] as Item["kind"], slug: m[2] } : { kind: "pack", slug: key };
+}
+
+export const itemKey = (i: Item) => `${i.kind}:${i.slug}`;
+
 export type PromoRule = {
   active: boolean;
   percentOff: number;
+  /** true: valid for every pack and class; false: only for the ticked ones */
+  appliesToAll: boolean;
   packSlugs: string[];
+  classSlugs: string[];
   maxUses: number | null;
   expiresOn: string | null;
 };
 
-/** Why a code cannot be used for this pack, or null when it is valid. */
-export function promoProblem(promo: PromoRule | null, packSlug: string, uses: number, today = todayInIndia()): string | null {
+/** Whether a code may be used for this item at all (ignoring expiry and usage). */
+export function promoCovers(promo: Pick<PromoRule, "appliesToAll" | "packSlugs" | "classSlugs">, item: Item): boolean {
+  if (promo.appliesToAll) return true;
+  return item.kind === "pack" ? promo.packSlugs.includes(item.slug) : promo.classSlugs.includes(item.slug);
+}
+
+/** Why a code cannot be used for this item, or null when it is valid. */
+export function promoProblem(promo: PromoRule | null, item: Item, uses: number, today = todayInIndia()): string | null {
   if (!promo) return "This promo code does not exist.";
   if (!promo.active) return "This promo code is no longer active.";
   if (promo.expiresOn && today > promo.expiresOn) return "This promo code has expired.";
   if (promo.maxUses != null && uses >= promo.maxUses) return "This promo code has been fully used.";
-  if (promo.packSlugs.length && !promo.packSlugs.includes(packSlug)) return "This promo code is not valid for this pack.";
+  if (!promoCovers(promo, item)) return `This promo code is not valid for this ${item.kind === "pack" ? "pack" : "live class"}.`;
   if (promo.percentOff < 1 || promo.percentOff > 100) return "This promo code is not valid.";
   return null;
 }

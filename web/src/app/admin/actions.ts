@@ -14,7 +14,7 @@ import { sendEmail, signature } from "@/lib/email";
 import { CATALOG_KINDS } from "@/lib/exam/catalog";
 import { SITE_URL } from "@/lib/site";
 import { logout, requestLoginCode, requireAdmin, verifyLoginCode } from "@/lib/auth";
-import { BATCHES_TAG, deleteBatch, getStoredBatch, saveBatch } from "@/lib/batch-store";
+import { BATCHES_TAG, deleteBatch, getStoredBatch, listAllBatches, saveBatch } from "@/lib/batch-store";
 import { fieldsToBatch, formDataToFields, type BatchFields } from "@/lib/batch-form";
 
 // ---------- login ----------
@@ -209,7 +209,13 @@ export async function savePromoAction(prev: PromoFormState, fd: FormData): Promi
   const maxRaw = String(fd.get("maxUses") ?? "").replace(/[^\d]/g, "");
   const expiresOn = String(fd.get("expiresOn") ?? "").trim();
   const known = (await listPacks()).map((p) => p.slug);
-  const packSlugs = fd.getAll("packSlugs").map(String).filter((s) => known.includes(s));
+  const knownClasses = (await listAllBatches()).map((b) => b.slug);
+  const appliesToAll = fd.get("scope") !== "selected";
+  const packSlugs = appliesToAll ? [] : fd.getAll("packSlugs").map(String).filter((s) => known.includes(s));
+  const classSlugs = appliesToAll ? [] : fd.getAll("classSlugs").map(String).filter((s) => knownClasses.includes(s));
+  if (!appliesToAll && !packSlugs.length && !classSlugs.length) {
+    return { error: "Tick at least one pack or class, or choose \"All packs and live classes\"." };
+  }
   if (code.length < 3) return { error: "The code needs at least 3 letters or numbers." };
   if (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 100) return { error: "Discount must be a whole number from 1 to 100 %." };
   if (expiresOn && !/^\d{4}-\d{2}-\d{2}$/.test(expiresOn)) return { error: "Expiry date is not valid." };
@@ -220,6 +226,8 @@ export async function savePromoAction(prev: PromoFormState, fd: FormData): Promi
     percentOff,
     label: String(fd.get("label") ?? "").trim().slice(0, 120) || null,
     packSlugs,
+    classSlugs,
+    appliesToAll,
     active: fd.get("active") === "on",
     maxUses: maxRaw ? Number(maxRaw) : null,
     expiresOn: expiresOn || null,

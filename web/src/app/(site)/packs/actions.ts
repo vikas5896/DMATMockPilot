@@ -6,6 +6,7 @@ import {
   createRazorpayOrder,
   fulfillPayment,
   getPayment,
+  isEnrolled,
   markFailed,
   paymentsEnabled,
   razorpayKeyId,
@@ -13,8 +14,8 @@ import {
   recordOrder,
 } from "@/lib/payments";
 import { verifyPaymentSignature } from "@/lib/razorpay-signature";
-import { normalizeCode } from "@/lib/pricing";
-import { resolvePromo, type ResolvedPromo } from "@/lib/promo";
+import { normalizeCode, parseItem } from "@/lib/pricing";
+import { getItemInfo, resolvePromo, type ResolvedPromo } from "@/lib/promo";
 import { BRAND } from "@/lib/brand";
 import { notifyAdmins, sendEmail, signature } from "@/lib/email";
 
@@ -29,9 +30,9 @@ const waNumber = (phone: string) => {
  * Check a promo code for a pack (no login needed, so visitors can see the price).
  * Returns the offer that applies: the entered code, or the automatic offer if that is better.
  */
-export async function checkPromoAction(code: string, packSlug: string): Promise<ResolvedPromo> {
+export async function checkPromoAction(code: string, itemKey: string): Promise<ResolvedPromo> {
   if (!normalizeCode(code)) return { ok: false, error: "Please enter a promo code.", offer: null };
-  return resolvePromo(code, packSlug);
+  return resolvePromo(code, parseItem(itemKey));
 }
 
 export async function requestAccessAction(
@@ -47,7 +48,7 @@ export async function requestAccessAction(
   const note = message.trim().slice(0, 1000) || null;
 
   // the automatic offer, or the student's code if it is better (codes never stack)
-  const promo = await resolvePromo(promoCode, pack.slug);
+  const promo = await resolvePromo(promoCode, { kind: "pack", slug: pack.slug });
   if (!promo.ok) return { ok: false, error: promo.error };
   const code = promo.offer?.code ?? null;
   const quoted = promo.offer ? promo.offer.finalPriceInr : pack.priceInr;
@@ -98,34 +99,52 @@ export type OrderResult =
     }
   | { ok: false; error: string };
 
-/** Start a payment: the price (with any promo code) is worked out here, never taken from the browser. */
-export async function createOrderAction(packSlug: string, promoCode?: string): Promise<OrderResult> {
-  if (!paymentsEnabled()) return { ok: false, error: "Online payment is not available yet. Please use Request access." };
+/**
+ * Start a payment for a pack ("pack:<slug>" or a bare pack slug) or a live class ("class:<slug>").
+ * The price (with any promo code) is worked out here, never taken from the browser.
+ */
+export async function createOrderAction(itemKey: string, promoCode?: string): Promise<OrderResult> {
+  if (!paymentsEnabled()) return { ok: false, error: "Online payment is not available yet. Please contact us." };
   const me = await currentStudent();
   if (!me || !me.name || !me.phone) return { ok: false, error: "Please log in first." };
-  const pack = await getPack(packSlug);
-  if (!pack || !pack.published || pack.priceInr == null) return { ok: false, error: "This pack cannot be bought online." };
-  if ((await activeGrants(me.id)).some((g) => g.packSlug === pack.slug)) return { ok: false, error: "You already have this pack." };
+  const item = parseItem(itemKey);
+  const info = await getItemInfo(item);
+  if (!info || !info.available || info.priceInr == null) {
+    return { ok: false, error: `This ${item.kind === "pack" ? "pack" : "class"} cannot be bought online.` };
+  }
+  if (item.kind === "pack" && (await activeGrants(me.id)).some((g) => g.packSlug === item.slug)) {
+    return { ok: false, error: "You already have this pack." };
+  }
+  if (item.kind === "class" && (await isEnrolled(me.id, item.slug))) {
+    return { ok: false, error: "You are already enrolled in this class." };
+  }
 
-  const promo = await resolvePromo(promoCode, pack.slug);
+  const promo = await resolvePromo(promoCode, item);
   if (!promo.ok) return { ok: false, error: promo.error };
   const code = promo.offer?.code ?? null;
-  const amount = promo.offer ? promo.offer.finalPriceInr : pack.priceInr;
-  if (amount < 1) return { ok: false, error: "With this code the pack is free: please use Request access and we unlock it for you." };
+  const amount = promo.offer ? promo.offer.finalPriceInr : info.priceInr;
+  if (amount < 1) return { ok: false, error: "With this code it is free: please contact us and we add you directly." };
 
   try {
-    const orderId = await createRazorpayOrder(amount, `s${me.id}-${pack.slug}-${Date.now()}`, {
+    const orderId = await createRazorpayOrder(amount, `s${me.id}-${item.slug}-${Date.now()}`, {
       student: String(me.id),
-      pack: pack.slug,
+      [item.kind]: item.slug,
       promo: code ?? "",
     });
-    await recordOrder({ orderId, studentId: me.id, packSlug: pack.slug, promoCode: code, amountInr: amount });
+    await recordOrder({
+      orderId,
+      studentId: me.id,
+      packSlug: item.kind === "pack" ? item.slug : null,
+      classSlug: item.kind === "class" ? item.slug : null,
+      promoCode: code,
+      amountInr: amount,
+    });
     return {
       ok: true,
       keyId: razorpayKeyId(),
       orderId,
       amountPaise: amount * 100,
-      packName: pack.name,
+      packName: info.name,
       prefill: { name: me.name, email: me.email, contact: me.phone },
     };
   } catch {

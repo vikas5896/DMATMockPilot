@@ -5,7 +5,8 @@ import { Suspense } from "react";
 import { revokeGrantAction } from "@/app/admin/actions";
 import { AdminShell, Loading } from "@/components/admin/AdminShell";
 import { getDb } from "@/db";
-import { accessRequests, attempts, grants, students } from "@/db/schema";
+import { accessRequests, attempts, classEnrollments, grants, students } from "@/db/schema";
+import { listAllBatches } from "@/lib/batch-store";
 import { listPacks } from "@/lib/access";
 import { requireAdmin } from "@/lib/auth";
 import { parseTestId } from "@/lib/exam/catalog";
@@ -31,12 +32,14 @@ async function StudentDetail({ params, searchParams }: Props) {
   const sp = await searchParams;
   if (!Number.isInteger(id)) notFound();
   const db = await getDb();
-  const [[s], tests, reqs, gs, packList] = await Promise.all([
+  const [[s], tests, reqs, gs, packList, enrols, classes] = await Promise.all([
     db.select().from(students).where(eq(students.id, id)),
     db.select().from(attempts).where(eq(attempts.studentId, id)).orderBy(desc(attempts.startedAt)),
     db.select().from(accessRequests).where(eq(accessRequests.studentId, id)).orderBy(desc(accessRequests.createdAt)),
     db.select().from(grants).where(eq(grants.studentId, id)).orderBy(desc(grants.grantedAt)),
     listPacks(),
+    db.select().from(classEnrollments).where(eq(classEnrollments.studentId, id)),
+    listAllBatches(),
   ]);
   if (!s) notFound();
   const packName = (slug: string) => packList.find((p) => p.slug === slug)?.name ?? slug;
@@ -140,6 +143,22 @@ async function StudentDetail({ params, searchParams }: Props) {
               </ul>
             )}
           </div>
+
+          {enrols.length > 0 && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 text-sm">
+              <p className="font-semibold">Live classes</p>
+              <ul className="mt-2 space-y-1">
+                {enrols.map((e) => (
+                  <li key={e.id}>
+                    <strong>{classes.find((b) => b.slug === e.classSlug)?.title ?? e.classSlug}</strong>
+                    {e.amountInr != null ? ` · ₹${e.amountInr}` : ""}
+                    {e.promoCode ? ` · code ${e.promoCode}` : ""} · enrolled {fmt(e.createdAt)}
+                    {e.paymentRef ? <span className="block text-xs text-zinc-500">{e.paymentRef}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {reqs.length > 0 && (
             <div className="rounded-xl border border-zinc-200 bg-white p-5 text-sm">

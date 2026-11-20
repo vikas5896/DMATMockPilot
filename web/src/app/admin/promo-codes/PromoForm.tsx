@@ -8,6 +8,8 @@ export type PromoInitial = {
   percentOff: number;
   label: string | null;
   packSlugs: string[];
+  classSlugs: string[];
+  appliesToAll: boolean;
   active: boolean;
   maxUses: number | null;
   expiresOn: string | null;
@@ -19,16 +21,20 @@ const f = "mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text
 export function PromoForm({
   initial,
   packs,
+  classes,
   siteUrl,
   stats,
 }: {
   initial?: PromoInitial;
   packs: { slug: string; name: string; priceInr: number | null }[];
+  /** live classes with an online price */
+  classes: { slug: string; name: string; priceInr: number }[];
   siteUrl: string;
   stats?: { requests: number; sales: number; revenueInr: number };
 }) {
   const [state, action, pending] = useActionState<PromoFormState, FormData>(savePromoAction, {});
   const [copied, setCopied] = useState(false);
+  const [scope, setScope] = useState<"all" | "selected">(initial && !initial.appliesToAll ? "selected" : "all");
   const isNew = !initial;
   const link = initial ? `${siteUrl}/packs?code=${initial.code}` : "";
   const copy = async () => {
@@ -94,21 +100,60 @@ export function PromoForm({
         </label>
       </div>
       <fieldset className="text-sm">
-        <legend className="font-medium">Valid for (none ticked = all packs)</legend>
-        <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
-          {packs.map((p) => (
-            <label key={p.slug} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="packSlugs"
-                value={p.slug}
-                defaultChecked={initial?.packSlugs.includes(p.slug)}
-                className="h-4 w-4 accent-[var(--brand)]"
-              />
-              {p.name}
-              {p.priceInr != null && <span className="text-zinc-500">(₹{p.priceInr.toLocaleString("en-IN")})</span>}
-            </label>
-          ))}
+        <legend className="font-medium">Valid for</legend>
+        <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1">
+          <label className="flex items-center gap-2">
+            <input type="radio" name="scope" value="all" checked={scope === "all"} onChange={() => setScope("all")} className="h-4 w-4 accent-[var(--brand)]" />
+            All packs and live classes
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="scope"
+              value="selected"
+              checked={scope === "selected"}
+              onChange={() => setScope("selected")}
+              className="h-4 w-4 accent-[var(--brand)]"
+            />
+            Only the ones I tick
+          </label>
+        </div>
+        <div className={`mt-2 grid gap-3 rounded-md border border-zinc-200 p-3 sm:grid-cols-2 ${scope === "all" ? "opacity-40" : ""}`}>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Test packs</p>
+            {packs.map((p) => (
+              <label key={p.slug} className="mt-1 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="packSlugs"
+                  value={p.slug}
+                  disabled={scope === "all"}
+                  defaultChecked={initial?.packSlugs.includes(p.slug)}
+                  className="h-4 w-4 accent-[var(--brand)]"
+                />
+                {p.name}
+                {p.priceInr != null && <span className="text-zinc-500">(₹{p.priceInr.toLocaleString("en-IN")})</span>}
+              </label>
+            ))}
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Live classes</p>
+            {classes.length === 0 && <p className="mt-1 text-xs text-zinc-500">No class has an online price yet.</p>}
+            {classes.map((c) => (
+              <label key={c.slug} className="mt-1 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="classSlugs"
+                  value={c.slug}
+                  disabled={scope === "all"}
+                  defaultChecked={initial?.classSlugs.includes(c.slug)}
+                  className="h-4 w-4 accent-[var(--brand)]"
+                />
+                {c.name}
+                <span className="text-zinc-500">(₹{c.priceInr.toLocaleString("en-IN")})</span>
+              </label>
+            ))}
+          </div>
         </div>
       </fieldset>
       <label className="flex items-center gap-2 text-sm">
