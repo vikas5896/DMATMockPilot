@@ -92,8 +92,16 @@ export function LeadForm({ defaultInterest = "other", batch, batchTitle, submitL
           />
         </label>
         <label className="block text-sm font-medium">
-          Phone / WhatsApp <span className="font-normal text-zinc-500">(optional)</span>
-          <input className={field} type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} autoComplete="tel" />
+          Mobile number (WhatsApp)
+          <input
+            className={field}
+            type="tel"
+            value={form.phone}
+            onChange={(e) => set("phone", e.target.value)}
+            autoComplete="tel"
+            placeholder="98765 43210"
+            required
+          />
         </label>
         {!fixedInterest && (
           <label className="block text-sm font-medium">

@@ -10,7 +10,7 @@ export type Interest = keyof typeof INTERESTS;
 export type LeadInput = {
   name: string;
   email: string;
-  phone?: string;
+  phone: string;
   interest: Interest;
   batch?: string;
   message?: string;
@@ -27,7 +27,10 @@ export function validateLead(x: Partial<LeadInput>): string | null {
   if (!x.name || x.name.trim().length < 2) return "Please enter your name.";
   if (x.name.length > 100) return "Name is too long.";
   if (!x.email || !EMAIL.test(x.email.trim())) return "Please enter a valid email address.";
-  if (x.phone && !PHONE.test(x.phone.trim())) return "Please enter a valid phone number, or leave it empty.";
+  // required: this is how we contact students (call or WhatsApp)
+  const digits = (x.phone ?? "").replace(/\D/g, "").length;
+  if (!x.phone || !x.phone.trim()) return "Please enter your phone / WhatsApp number.";
+  if (!PHONE.test(x.phone.trim()) || digits < 10 || digits > 15) return "Please enter a valid phone number, e.g. 98765 43210.";
   if (!x.interest || !(x.interest in INTERESTS)) return "Please choose what you are interested in.";
   if (x.message && x.message.length > 2000) return "Message is too long (max. 2,000 characters).";
   if (!x.consent) return "Please agree to be contacted.";
