@@ -153,6 +153,13 @@ function AttemptView({ testId, testTitle, initial }: { testId: string; testTitle
             · {BRAND.name} is an independent practice platform, not affiliated with g.a.s.t.
           </p>
         </main>
+        {attempt.stage === 0 && (
+          <ExamRulesGate
+            testTitle={testTitle}
+            minutes={test.subtests.reduce((m, t) => m + t.timeSec / 60, 0) + (test.breakSec ?? 0) / 60}
+            parts={test.subtests.length}
+          />
+        )}
       </div>
     );
   }
@@ -369,6 +376,70 @@ function BreakScreen({ attempt, onEnd }: { attempt: Attempt; onEnd: () => void }
           Skip the break and continue
         </button>
       </main>
+    </div>
+  );
+}
+
+/**
+ * Shown before a test begins: the student confirms they will take it like the real dMAT
+ * (strict timing, one attempt, no help). Nothing starts until they accept.
+ */
+function ExamRulesGate({ testTitle, minutes, parts }: { testTitle: string; minutes: number; parts: number }) {
+  const [accepted, setAccepted] = useState(false);
+  const [checked, setChecked] = useState(false);
+  if (accepted) return null;
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  const length = hours ? `${hours} h${mins ? ` ${mins} min` : ""}` : `${mins} minutes`;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rules-title"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl sm:p-8"
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand">Before you begin</p>
+        <h2 id="rules-title" className="mt-1 text-2xl font-bold">
+          This test works like the real dMAT
+        </h2>
+        <p className="mt-2 text-sm text-zinc-600">
+          {testTitle} · {parts} part{parts > 1 ? "s" : ""} · about {length}
+        </p>
+        <ul className="mt-5 list-disc space-y-2 pl-5 text-[15px] leading-6 text-zinc-700">
+          <li>Same format, question types and strict time limits as the real exam.</li>
+          <li>Each part has its own timer. It starts when you click Start and keeps running even if you close the page.</li>
+          <li>When time runs out, the part locks and you cannot go back to it.</li>
+          <li>You can take this test only once, so set aside the full time.</li>
+          <li>No notes, calculator or outside help, just like exam day.</li>
+          <li>Use a laptop or desktop in a quiet place for the best experience.</li>
+        </ul>
+        <p className="mt-4 text-xs text-zinc-500">
+          {BRAND.name} is an independent practice platform, not the official dMAT. Your score is a practice estimate.
+        </p>
+        <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => setChecked(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-brand"
+          />
+          <span>I understand and will take this test under real exam conditions.</span>
+        </label>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Link href="/account" className="rounded-md border px-4 py-2 text-center text-sm">
+            Not now
+          </Link>
+          <button
+            type="button"
+            disabled={!checked}
+            onClick={() => setAccepted(true)}
+            className="rounded-md bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Accept and continue
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
