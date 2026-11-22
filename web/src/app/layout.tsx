@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteAnalytics } from "@/components/SiteAnalytics";
+import { MetaPixel } from "@/components/MetaPixel";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
@@ -33,6 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <SiteAnalytics />
+        <Suspense fallback={null}>
+          <MetaPixel />
+        </Suspense>
       </body>
     </html>
   );

@@ -52,6 +52,16 @@ export default function PrivacyPage() {
             </p>
           </div>
           <div>
+            <h2 className="text-xl font-bold">Visitor statistics and advertising</h2>
+            <p className="mt-2">
+              We count visits with Vercel Web Analytics, which uses no cookies. We also use the Meta Pixel (Facebook and
+              Instagram) on our public pages. It sets cookies and tells Meta when you view a page, sign up, send an
+              enquiry or complete a purchase (with the amount), so we can measure our ads and show them to people likely
+              to be interested. We do not send your name, email address, phone number or test answers to Meta. You can
+              limit this in your browser, with an ad blocker, or in your Facebook and Instagram ad settings.
+            </p>
+          </div>
+          <div>
             <h2 className="text-xl font-bold">How long we keep it</h2>
             <p className="mt-2">
               As long as your account exists, and payment records as long as the law requires. We delete your account

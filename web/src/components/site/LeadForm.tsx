@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/pixel";
 import Link from "next/link";
 import { useState } from "react";
 import { INTERESTS, validateLead, type Interest, type LeadInput } from "@/lib/leads";
@@ -50,6 +51,7 @@ export function LeadForm({ defaultInterest = "other", batch, batchTitle, submitL
       });
       const data = (await res.json()) as { ok: boolean; error?: string };
       if (!data.ok) throw new Error(data.error ?? "Something went wrong.");
+      track("Lead", { content_name: form.interest });
       setState("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { checkPromoAction, confirmPaymentAction, createOrderAction, paymentFailedAction } from "@/app/(site)/packs/actions";
 import { BRAND } from "@/lib/brand";
 import { loadCheckout, type Applied, type RazorpayResponse } from "./PackCard";
+import { track } from "@/lib/pixel";
 import { PROMO_KEY } from "./PromoCatcher";
 
 const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
@@ -91,6 +92,7 @@ export function ClassPayCard({
       const [order, loaded] = await Promise.all([createOrderAction(item, applied?.code), loadCheckout()]);
       if (!order.ok) throw new Error(order.error);
       if (!loaded || !window.Razorpay) throw new Error("Could not load the payment window. Check your internet connection and try again.");
+      track("InitiateCheckout", { value: order.amountPaise / 100, currency: "INR", content_name: title });
       const rzp = new window.Razorpay({
         key: order.keyId,
         order_id: order.orderId,
@@ -109,6 +111,7 @@ export function ClassPayCard({
           setPaying(false);
           if (c.ok) {
             setPaid(true);
+            track("Purchase", { value: order.amountPaise / 100, currency: "INR", content_name: title }, order.orderId);
             router.refresh();
           } else setPayError(`${c.error} (Payment ID: ${r.razorpay_payment_id})`);
         },

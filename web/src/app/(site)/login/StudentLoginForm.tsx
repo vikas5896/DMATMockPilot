@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { track } from "@/lib/pixel";
 import { studentLoginAction, type StudentLoginState } from "./actions";
 
 const field =
@@ -20,6 +21,14 @@ export function StudentLoginForm({ next, startAtProfile, email }: { next: string
 
 function Inner({ initial, onReset }: { initial: StudentLoginState; onReset: () => void }) {
   const [state, action, pending] = useActionState<StudentLoginState, FormData>(studentLoginAction, initial);
+  // A new account reaches the profile step right after its first code check: count that as a sign-up for ads.
+  const signedUp = useRef(false);
+  useEffect(() => {
+    if (state.step === "profile" && initial.step !== "profile" && !signedUp.current) {
+      signedUp.current = true;
+      track("CompleteRegistration");
+    }
+  }, [state.step, initial.step]);
 
   return (
     <form action={action} className="space-y-4">

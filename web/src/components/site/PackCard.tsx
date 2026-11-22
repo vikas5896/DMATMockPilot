@@ -12,6 +12,7 @@ import {
 } from "@/app/(site)/packs/actions";
 import { BRAND, waHref } from "@/lib/brand";
 import { PROMO_KEY } from "./PromoCatcher";
+import { track } from "@/lib/pixel";
 
 export type PackInfo = {
   slug: string;
@@ -150,6 +151,7 @@ export function PackCard({
       const [order, loaded] = await Promise.all([createOrderAction(pack.slug, applied?.code), loadCheckout()]);
       if (!order.ok) throw new Error(order.error);
       if (!loaded || !window.Razorpay) throw new Error("Could not load the payment window. Check your internet connection and try again.");
+      track("InitiateCheckout", { value: order.amountPaise / 100, currency: "INR", content_name: order.packName });
       const rzp = new window.Razorpay({
         key: order.keyId,
         order_id: order.orderId,
@@ -168,6 +170,7 @@ export function PackCard({
           setPaying(false);
           if (c.ok) {
             setPaid(true);
+            track("Purchase", { value: order.amountPaise / 100, currency: "INR", content_name: order.packName }, order.orderId);
             try {
               localStorage.removeItem(PROMO_KEY);
             } catch {}
