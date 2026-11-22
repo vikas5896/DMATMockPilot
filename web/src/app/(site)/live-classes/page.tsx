@@ -52,7 +52,7 @@ export default async function LiveClassesPage() {
           items={[
             {
               q: "Which batch should I choose?",
-              a: "Pick the batch for your exam sitting. If you are taking the dMAT in January, the Core Module Crash Course fits; for March, choose the Complete dMAT Preparation. Not sure? Join the free webinar or send us a message.",
+              a: "Pick the batch for your exam sitting. If you are taking the dMAT in January, the Core Module Crash Course fits; for March, choose the Complete dMAT Preparation. Not sure? Join the dMAT Explained webinar or send us a message.",
             },
             {
               q: "What do I need to join?",

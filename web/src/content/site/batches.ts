@@ -31,14 +31,15 @@ export const BATCHES: Batch[] = [
     title: "dMAT Explained: Format, Rules and Strategy",
     kind: "webinar",
     summary:
-      "A free 90-minute live session: who needs the dMAT, how each section works, how the timing rules affect your strategy, and how to plan your preparation.",
+      "A 90-minute live session: who needs the dMAT, how each section works, how the timing rules affect your strategy, and how to plan your preparation.",
     start: "2026-11-29",
     end: "2026-11-29",
     days: "Sunday",
     time: "6:00–7:30 pm IST",
     sessions: 1,
     sessionLength: "90 min",
-    fee: "Free",
+    fee: "₹49",
+    priceInr: 49,
     status: "open",
     includes: ["Live Q&A", "Recording for registered participants", "Free full mock test afterwards"],
     syllabus: [

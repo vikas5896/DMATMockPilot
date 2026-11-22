@@ -16,7 +16,7 @@ export function BatchCard({ b }: { b: Batch }) {
     >
       <div className="flex flex-wrap items-center gap-2">
         {statusBadge(b)}
-        <Badge tone="zinc">{b.kind === "webinar" ? "Free webinar" : b.kind === "masterclass" ? "Masterclass" : "Course"}</Badge>
+        <Badge tone="zinc">{b.kind === "webinar" ? (b.priceInr || b.fee !== "Free" ? "Live webinar" : "Free webinar") : b.kind === "masterclass" ? "Masterclass" : "Course"}</Badge>
         {b.forSitting && <span className="text-xs text-zinc-500">For the {b.forSitting}</span>}
       </div>
       <h3 className="mt-3 text-xl font-bold">{b.title}</h3>

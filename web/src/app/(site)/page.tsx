@@ -79,7 +79,7 @@ export default async function Home() {
               className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-brand"
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-brand">
-                {b.kind === "webinar" ? "Free webinar" : b.forSitting}
+                {b.kind === "webinar" ? (b.priceInr || b.fee !== "Free" ? "Live webinar" : "Free webinar") : b.forSitting}
               </p>
               <h3 className="mt-1 text-lg font-semibold">{b.title}</h3>
               <p className="mt-2 text-sm text-zinc-600">{formatRange(b.start, b.end)}</p>
