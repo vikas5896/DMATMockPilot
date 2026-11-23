@@ -190,12 +190,15 @@ export function ClassPayCard({
 
         <div className="mt-4">
           {!payOnline ? null : !signedIn ? (
-            <Link
-              href={`/login?next=${encodeURIComponent(`/live-classes/${slug}#register`)}`}
-              className="block rounded-md bg-brand px-4 py-3 text-center font-semibold text-white hover:bg-brand-dark"
-            >
-              Sign up to book your seat
-            </Link>
+            <>
+              <Link
+                href={`/login?next=${encodeURIComponent(`/live-classes/${slug}#register`)}`}
+                className="block rounded-md bg-brand px-4 py-3 text-center font-semibold text-white hover:bg-brand-dark"
+              >
+                Book your seat – {rupees(finalPrice)}
+              </Link>
+              <p className="mt-2 text-xs text-zinc-600">Takes a minute: confirm your email with a code, then pay.</p>
+            </>
           ) : (
             <>
               {payError && (

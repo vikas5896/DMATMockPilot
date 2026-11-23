@@ -10,6 +10,7 @@ import { isEnrolled, paymentsEnabled } from "@/lib/payments";
 import { autoOffers } from "@/lib/promo";
 import { getPublicBatch, getPublicBatches } from "@/lib/batch-store";
 import { statusBadge } from "@/components/site/BatchCard";
+import { StickyBookBar } from "@/components/site/StickyBookBar";
 import { LeadForm } from "@/components/site/LeadForm";
 import { Section } from "@/components/site/ui";
 import { JsonLd } from "@/components/site/JsonLd";
@@ -50,6 +51,9 @@ async function BatchContent({ params }: Props) {
     ["Instructor", b.instructor ?? "To be announced"],
     ["Fee", b.priceInr ? `₹${b.priceInr.toLocaleString("en-IN")}` : (b.fee ?? "Announced soon")],
   ];
+  const bookable = !!b.priceInr && b.status === "open";
+  const when = `${b.days}, ${formatRange(b.start, b.end)}`;
+  const price = b.priceInr ? `₹${b.priceInr.toLocaleString("en-IN")}` : "";
 
   return (
     <>
@@ -80,9 +84,30 @@ async function BatchContent({ params }: Props) {
           <div className="mt-4">{statusBadge(b)}</div>
           <h1 className="mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">{b.title}</h1>
           {b.forSitting && <p className="mt-2 text-white/75">For the {b.forSitting}</p>}
-          <p className="mt-4 max-w-2xl text-lg text-white/85">{b.summary}</p>
+          {bookable ? (
+            <>
+              <ul className="mt-5 flex flex-wrap gap-2 text-sm font-semibold">
+                <li className="rounded-full bg-white/15 px-3 py-1.5">📅 {when}</li>
+                <li className="rounded-full bg-white/15 px-3 py-1.5">🕕 {b.time}</li>
+                <li className="rounded-full bg-white px-3 py-1.5 text-brand">{price}</li>
+              </ul>
+              <p className="mt-4 max-w-2xl text-white/85">
+                Led by people who have sat the real dMAT. {b.includes.slice(0, 2).join(" · ")}.
+              </p>
+              <a
+                href="#register"
+                className="mt-6 inline-block w-full rounded-md bg-white px-6 py-3.5 text-center text-lg font-bold text-brand shadow-sm hover:bg-brand-soft sm:w-auto"
+              >
+                Book your seat – {price}
+              </a>
+              <p className="mt-4 max-w-2xl text-sm text-white/75">{b.summary}</p>
+            </>
+          ) : (
+            <p className="mt-4 max-w-2xl text-lg text-white/85">{b.summary}</p>
+          )}
         </div>
       </section>
+      {bookable && <StickyBookBar price={price} when={`${b.days}, ${formatRange(b.start, b.end).replace(/ \d{4}/g, "")}`} />}
 
       <Section>
         <div className="grid gap-10 lg:grid-cols-[3fr_2fr]">
@@ -114,8 +139,11 @@ async function BatchContent({ params }: Props) {
             </ul>
           </div>
 
-          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-            <dl className="divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-zinc-50">
+          {/* on phones the booking card comes first, straight under the header */}
+          <aside className={`flex flex-col gap-6 lg:sticky lg:top-24 lg:order-last lg:self-start ${bookable ? "order-first" : ""}`}>
+            <dl
+              className={`divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-zinc-50 ${bookable ? "order-last lg:order-none" : ""}`}
+            >
               {facts.map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4 px-5 py-3 text-sm">
                   <dt className="text-zinc-500">{k}</dt>
@@ -123,7 +151,7 @@ async function BatchContent({ params }: Props) {
                 </div>
               ))}
             </dl>
-            <div id="register">
+            <div id="register" className="scroll-mt-24">
               <h2 className="mb-3 text-xl font-bold">
                 {b.status === "soon" ? "Get notified" : b.priceInr && b.status === "open" ? "Book your seat" : "Register your interest"}
               </h2>
