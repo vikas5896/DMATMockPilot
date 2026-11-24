@@ -1,6 +1,7 @@
 "use server";
 
-import { currentStudent } from "@/lib/auth";
+import { currentStudent, isValidEmail, PHONE_RE, studentForBooking } from "@/lib/auth";
+import type { Student } from "@/db/schema";
 import { activeGrants, createRequest, getPack } from "@/lib/access";
 import {
   createRazorpayOrder,
@@ -107,6 +108,37 @@ export async function createOrderAction(itemKey: string, promoCode?: string): Pr
   if (!paymentsEnabled()) return { ok: false, error: "Online payment is not available yet. Please contact us." };
   const me = await currentStudent();
   if (!me || !me.name || !me.phone) return { ok: false, error: "Please log in first." };
+  return startOrder(me, itemKey, promoCode);
+}
+
+/**
+ * One-step booking for a paid live class, without logging in first: name, email and phone, then pay.
+ * The seat is booked on the account for that email (created if new); the student sees it after logging in
+ * with the same email. Packs still need a login first.
+ */
+export async function createGuestClassOrderAction(
+  classSlug: string,
+  details: { name: string; email: string; phone: string; consent: boolean },
+  promoCode?: string,
+): Promise<OrderResult> {
+  if (!paymentsEnabled()) return { ok: false, error: "Online payment is not available yet. Please contact us." };
+  const name = details.name.trim().replace(/\s+/g, " ");
+  const email = details.email.trim().toLowerCase();
+  const phone = details.phone.trim();
+  if (name.length < 2 || name.length > 100) return { ok: false, error: "Please enter your full name." };
+  if (!isValidEmail(email)) return { ok: false, error: "Please enter a valid email address." };
+  if (!PHONE_RE.test(phone)) return { ok: false, error: "Please enter a valid Indian mobile number, e.g. 98765 43210." };
+  if (!details.consent) return { ok: false, error: "Please agree to be contacted about your booking." };
+  const student = await studentForBooking(email, name, phone);
+  if (await isEnrolled(student.id, classSlug)) {
+    return { ok: false, error: "This email is already booked for this class. Check your inbox for the confirmation." };
+  }
+  // prefill with what the visitor typed (never reveal stored details of an existing account)
+  const r = await startOrder(student, `class:${classSlug}`, promoCode);
+  return r.ok ? { ...r, prefill: { name, email, contact: phone } } : r;
+}
+
+async function startOrder(me: Student, itemKey: string, promoCode?: string): Promise<OrderResult> {
   const item = parseItem(itemKey);
   const info = await getItemInfo(item);
   if (!info || !info.available || info.priceInr == null) {
@@ -145,10 +177,13 @@ export async function createOrderAction(itemKey: string, promoCode?: string): Pr
       orderId,
       amountPaise: amount * 100,
       packName: info.name,
-      prefill: { name: me.name, email: me.email, contact: me.phone },
+      prefill: { name: me.name ?? "", email: me.email, contact: me.phone ?? "" },
     };
   } catch {
-    return { ok: false, error: "Could not start the payment. Please try again, or use Request access." };
+    return {
+      ok: false,
+      error: `Could not start the payment. Please try again, or ${item.kind === "pack" ? "use Request access" : "message us on WhatsApp"}.`,
+    };
   }
 }
 
@@ -164,9 +199,24 @@ export async function confirmPaymentAction(orderId: string, paymentId: string, s
   return r === "granted" || r === "already" ? { ok: true } : { ok: false, error: "Please message us on WhatsApp with your payment ID." };
 }
 
+/**
+ * Guest booking: confirm without a session. The Razorpay signature proves this payment belongs to this order;
+ * only class orders can be confirmed this way.
+ */
+export async function confirmGuestPaymentAction(orderId: string, paymentId: string, sig: string): Promise<{ ok: boolean; error?: string }> {
+  const order = await getPayment(orderId);
+  if (!order || !order.classSlug) return { ok: false, error: "Payment not found." };
+  if (!verifyPaymentSignature(orderId, paymentId, sig, razorpayKeySecret())) {
+    return { ok: false, error: "We could not verify the payment. If money was deducted, message us on WhatsApp with your payment ID." };
+  }
+  const r = await fulfillPayment(orderId, paymentId);
+  return r === "granted" || r === "already" ? { ok: true } : { ok: false, error: "Please message us on WhatsApp with your payment ID." };
+}
+
 /** The checkout reported a failed attempt (the student can try again with the same order). */
 export async function paymentFailedAction(orderId: string, reason: string) {
   const me = await currentStudent();
   const order = await getPayment(orderId);
-  if (me && order && order.studentId === me.id) await markFailed(orderId, reason || "failed");
+  // guest class bookings have no session; markFailed only touches orders that are still unpaid
+  if (order && ((me && order.studentId === me.id) || order.classSlug)) await markFailed(orderId, reason || "failed");
 }

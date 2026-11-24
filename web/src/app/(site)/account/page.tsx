@@ -5,6 +5,7 @@ import { catalogStatuses, listAttempts } from "@/lib/attempt-store";
 import { activeGrants, listPacks, openRequests, unlockedKinds } from "@/lib/access";
 import Link from "next/link";
 import { studentLogoutAction } from "../login/actions";
+import { studentClasses } from "@/lib/payments";
 
 export const metadata = { title: "My tests", robots: { index: false, follow: false } };
 
@@ -18,13 +19,14 @@ export default function AccountPage() {
 
 async function Account() {
   const me = await requireStudent("/account");
-  const [rows, statuses, grantsActive, open, packList, kinds] = await Promise.all([
+  const [rows, statuses, grantsActive, open, packList, kinds, classes] = await Promise.all([
     listAttempts(me.id),
     catalogStatuses(me.id),
     activeGrants(me.id),
     openRequests(me.id),
     listPacks(),
     unlockedKinds(me.id),
+    studentClasses(me.id),
   ]);
   const packName = (slug: string) => packList.find((p) => p.slug === slug)?.name ?? slug;
   const fmt = (d: Date) => d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
@@ -54,6 +56,24 @@ async function Account() {
       </section>
       <section className="bg-zinc-50">
         <div className="mx-auto max-w-6xl px-6 py-10">
+          {classes.length > 0 && (
+            <div className="mb-8">
+              <h2 className="mb-3 text-lg font-bold">Your live classes</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {classes.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/live-classes/${c.slug}`}
+                    className="rounded-lg border border-brand/30 bg-white px-4 py-3 text-sm hover:border-brand"
+                  >
+                    <span className="font-semibold text-brand">✓ Booked: {c.title}</span>
+                    {c.when && <span className="mt-1 block text-zinc-600">{c.when}</span>}
+                    <span className="mt-1 block text-xs text-zinc-500">We send the joining link on WhatsApp before the session.</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="mb-6 text-sm text-zinc-600">
             Every test can be taken <strong>once</strong>. Your answers are saved as you go, so you can continue on
             another device; afterwards you can review your results any time. 🔒 tests unlock with a{" "}

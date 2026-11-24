@@ -201,6 +201,8 @@ async function enrolInClass(studentId: number, classSlug: string, amountInr: num
           "We will send you the joining link on WhatsApp before the first session.",
           `Details: ${SITE_URL}/live-classes/${classSlug}`,
           "",
+          `Your account: log in at ${SITE_URL}/login with this email address (${s?.email ?? ""}) to see your booking and take your free full dMAT mock test.`,
+          "",
           `Payment ID: ${paymentId}`,
           signature(),
         ]
@@ -227,6 +229,22 @@ export async function listEnrollments(classSlug?: string) {
     .from(classEnrollments)
     .innerJoin(students, eq(students.id, classEnrollments.studentId));
   return classSlug ? q.where(eq(classEnrollments.classSlug, classSlug)) : q;
+}
+
+/** The live classes a student has booked, with title and schedule (for My tests). */
+export async function studentClasses(studentId: number) {
+  const db = await getDb();
+  const rows = await db.select().from(classEnrollments).where(eq(classEnrollments.studentId, studentId));
+  return Promise.all(
+    rows.map(async (e) => {
+      const b = await getStoredBatch(e.classSlug);
+      return {
+        slug: e.classSlug,
+        title: b?.title ?? e.classSlug,
+        when: b ? `${formatRange(b.start, b.end)} · ${b.days}, ${b.time}` : "",
+      };
+    }),
+  );
 }
 
 export async function isEnrolled(studentId: number, classSlug: string): Promise<boolean> {

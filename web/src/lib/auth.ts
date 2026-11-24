@@ -192,6 +192,31 @@ export async function studentLogout() {
   (await cookies()).delete(STUDENT_COOKIE);
 }
 
+export const isValidEmail = (email: string) => EMAIL_RE.test(email) && email.length <= 200;
+export const PHONE_RE = /^(\+?91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}$/;
+
+/**
+ * One-step class booking without login: the account for this email (created if new).
+ * Name and phone are only filled in where the account has none, so a booking can never change
+ * someone else's details. This does NOT log anyone in: seeing the account still needs the email code.
+ */
+export async function studentForBooking(rawEmail: string, name: string, phone: string): Promise<Student> {
+  const email = rawEmail.trim().toLowerCase();
+  const db = await getDb();
+  const source = parseSource((await cookies()).get(SOURCE_COOKIE)?.value);
+  await db.insert(students).values({ email, name, phone, source }).onConflictDoNothing();
+  const [s] = await db.select().from(students).where(eq(students.email, email));
+  if (!s.name || !s.phone) {
+    const [u] = await db
+      .update(students)
+      .set({ name: s.name || name, phone: s.phone || phone })
+      .where(eq(students.id, s.id))
+      .returning();
+    return u;
+  }
+  return s;
+}
+
 /** The logged-in student, or null. */
 export async function currentStudent(): Promise<Student | null> {
   const p = await readCookie(STUDENT_COOKIE);

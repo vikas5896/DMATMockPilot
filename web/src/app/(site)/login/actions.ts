@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { students } from "@/db/schema";
-import { currentStudent, requestStudentCode, studentLogout, verifyStudentCode } from "@/lib/auth";
+import { currentStudent, PHONE_RE, requestStudentCode, studentLogout, verifyStudentCode } from "@/lib/auth";
 import { safeNext } from "@/lib/safe-next";
 import { notifyAdmins } from "@/lib/email";
 
@@ -19,8 +19,6 @@ export type StudentLoginState = {
   /** kept so the tick box stays ticked after an error (forms are reset after each submit) */
   consent?: boolean;
 };
-
-const PHONE_RE = /^(\+?91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}$/;
 
 export async function studentLoginAction(prev: StudentLoginState, fd: FormData): Promise<StudentLoginState> {
   const next = safeNext(fd.get("next") ?? prev.next);

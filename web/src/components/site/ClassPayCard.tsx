@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type ReactNode } from "react";
-import { checkPromoAction, confirmPaymentAction, createOrderAction, paymentFailedAction } from "@/app/(site)/packs/actions";
+import {
+  checkPromoAction,
+  confirmGuestPaymentAction,
+  confirmPaymentAction,
+  createGuestClassOrderAction,
+  createOrderAction,
+  paymentFailedAction,
+} from "@/app/(site)/packs/actions";
 import { BRAND } from "@/lib/brand";
 import { loadCheckout, type Applied, type RazorpayResponse } from "./PackCard";
 import { track } from "@/lib/pixel";
@@ -44,6 +51,9 @@ export function ClassPayCard({
   const [payError, setPayError] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
   const [showEnquiry, setShowEnquiry] = useState(!payOnline);
+  // one-step booking for visitors who are not logged in
+  const [guest, setGuest] = useState({ name: "", email: "", phone: "", consent: false });
+  const [bookedEmail, setBookedEmail] = useState<string | null>(null);
 
   const apply = (raw: string, silent = false) =>
     startCheck(async () => {
@@ -89,7 +99,11 @@ export function ClassPayCard({
     setPayError(null);
     setPaying(true);
     try {
-      const [order, loaded] = await Promise.all([createOrderAction(item, applied?.code), loadCheckout()]);
+      const asGuest = !signedIn;
+      const [order, loaded] = await Promise.all([
+        asGuest ? createGuestClassOrderAction(slug, guest, applied?.code) : createOrderAction(item, applied?.code),
+        loadCheckout(),
+      ]);
       if (!order.ok) throw new Error(order.error);
       if (!loaded || !window.Razorpay) throw new Error("Could not load the payment window. Check your internet connection and try again.");
       track("InitiateCheckout", { value: order.amountPaise / 100, currency: "INR", content_name: title });
@@ -104,13 +118,15 @@ export function ClassPayCard({
         theme: { color: "#8c0a55" },
         handler: async (r: RazorpayResponse) => {
           setPaying(true);
-          const c = await confirmPaymentAction(r.razorpay_order_id, r.razorpay_payment_id, r.razorpay_signature).catch(() => ({
+          const confirm = asGuest ? confirmGuestPaymentAction : confirmPaymentAction;
+          const c = await confirm(r.razorpay_order_id, r.razorpay_payment_id, r.razorpay_signature).catch(() => ({
             ok: false,
             error: "Please message us on WhatsApp with your payment ID.",
           }));
           setPaying(false);
           if (c.ok) {
             setPaid(true);
+            if (asGuest) setBookedEmail(guest.email.trim().toLowerCase());
             track("Purchase", { value: order.amountPaise / 100, currency: "INR", content_name: title }, order.orderId);
             router.refresh();
           } else setPayError(`${c.error} (Payment ID: ${r.razorpay_payment_id})`);
@@ -133,6 +149,15 @@ export function ClassPayCard({
       <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-5 text-emerald-900" role="status">
         <p className="text-lg font-bold">✓ {paid ? "Payment successful. Your seat is booked!" : "You're enrolled in this class."}</p>
         <p className="mt-1 text-sm">We will send you the joining link on WhatsApp before the first session. Check your email for the confirmation.</p>
+        {bookedEmail && (
+          <p className="mt-3 text-sm">
+            Your account is ready:{" "}
+            <Link href={`/login?next=${encodeURIComponent("/account")}`} className="font-semibold underline">
+              log in with {bookedEmail}
+            </Link>{" "}
+            to see your booking and take your free full dMAT mock test.
+          </p>
+        )}
       </div>
     );
   }
@@ -190,15 +215,83 @@ export function ClassPayCard({
 
         <div className="mt-4">
           {!payOnline ? null : !signedIn ? (
-            <>
-              <Link
-                href={`/login?next=${encodeURIComponent(`/live-classes/${slug}#register`)}`}
-                className="block rounded-md bg-brand px-4 py-3 text-center font-semibold text-white hover:bg-brand-dark"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void pay();
+              }}
+              className="space-y-3"
+            >
+              <label className="block text-sm">
+                <span className="font-medium">Full name</span>
+                <input
+                  required
+                  autoComplete="name"
+                  value={guest.name}
+                  onChange={(e) => setGuest({ ...guest, name: e.target.value })}
+                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-brand"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Email</span>
+                <input
+                  required
+                  type="email"
+                  autoComplete="email"
+                  value={guest.email}
+                  onChange={(e) => setGuest({ ...guest, email: e.target.value })}
+                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-brand"
+                />
+                <span className="mt-1 block text-xs text-zinc-500">Your confirmation and account are linked to this email.</span>
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium">Mobile number (WhatsApp)</span>
+                <input
+                  required
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder="98765 43210"
+                  value={guest.phone}
+                  onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
+                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:border-brand"
+                />
+              </label>
+              <label className="flex items-start gap-2 text-xs text-zinc-600">
+                <input
+                  type="checkbox"
+                  required
+                  checked={guest.consent}
+                  onChange={(e) => setGuest({ ...guest, consent: e.target.checked })}
+                  className="mt-0.5"
+                />
+                <span>
+                  I agree to be contacted about my booking. See our{" "}
+                  <Link href="/privacy" className="underline">
+                    privacy policy
+                  </Link>
+                  .
+                </span>
+              </label>
+              {payError && (
+                <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                  {payError}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={paying || checking}
+                className="w-full rounded-md bg-brand px-4 py-3 font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
               >
-                Book your seat – {rupees(finalPrice)}
-              </Link>
-              <p className="mt-2 text-xs text-zinc-600">Takes a minute: confirm your email with a code, then pay.</p>
-            </>
+                {paying ? "Opening payment…" : `Pay ${rupees(finalPrice)} & book your seat`}
+              </button>
+              <p className="text-xs text-zinc-500">
+                Already have an account?{" "}
+                <Link href={`/login?next=${encodeURIComponent(`/live-classes/${slug}#register`)}`} className="underline">
+                  Log in
+                </Link>
+              </p>
+            </form>
           ) : (
             <>
               {payError && (
