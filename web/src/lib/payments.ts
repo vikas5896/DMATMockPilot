@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, ne } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accessRequests, classEnrollments, grants, payments, students, type Payment } from "@/db/schema";
 import { getPack } from "@/lib/access";
@@ -188,6 +188,7 @@ async function enrolInClass(studentId: number, classSlug: string, amountInr: num
   const title = b?.title ?? classSlug;
   const when = b ? `${formatRange(b.start, b.end)}, ${b.days}, ${b.time}` : "";
   const price = `${rupees(amountInr)}${promoCode ? ` with code ${promoCode}` : ""}`;
+  const packIncluded = b && b.kind !== "webinar" ? await grantIncludedPack(studentId, classSlug, paymentId) : null;
   await Promise.all([
     s &&
       sendEmail({
@@ -200,6 +201,7 @@ async function enrolInClass(studentId: number, classSlug: string, amountInr: num
           when ? `When: ${when}` : "",
           "We will send you the joining link on WhatsApp before the first session.",
           `Details: ${SITE_URL}/live-classes/${classSlug}`,
+          packIncluded ? `Included with your course: the ${packIncluded}, unlocked in My tests (${SITE_URL}/account).` : "",
           "",
           `Your account: log in at ${SITE_URL}/login with this email address (${s?.email ?? ""}) to see your booking and take your free full dMAT mock test.`,
           "",
@@ -219,6 +221,36 @@ async function enrolInClass(studentId: number, classSlug: string, amountInr: num
       "Remember to send the joining link on WhatsApp.",
     ]),
   ]);
+}
+
+/** The pack every paid live course includes (not webinars). */
+export const COURSE_PACK = "full-pack";
+
+/**
+ * A paid live course unlocks the Full Pack at no extra cost. Skipped when the student already has it active.
+ * Returns the pack's name when a grant was made.
+ */
+async function grantIncludedPack(studentId: number, classSlug: string, paymentId: string): Promise<string | null> {
+  const db = await getDb();
+  const now = new Date();
+  const [active] = await db
+    .select({ id: grants.id })
+    .from(grants)
+    .where(and(eq(grants.studentId, studentId), eq(grants.packSlug, COURSE_PACK), gt(grants.expiresAt, now), isNull(grants.revokedAt)));
+  if (active) return null;
+  const pack = await getPack(COURSE_PACK);
+  if (!pack) return null;
+  await db.insert(grants).values({
+    studentId,
+    packSlug: COURSE_PACK,
+    expiresAt: new Date(now.getTime() + (pack.validityDays ?? 180) * 24 * 3600 * 1000),
+    amountInr: 0,
+    paymentRef: `Included with live class ${classSlug} (Razorpay ${paymentId})`,
+    paymentDate: now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }),
+    note: `Included with live class ${classSlug}`,
+    grantedBy: "class",
+  });
+  return pack.name;
 }
 
 /** Students enrolled in a class (for the admin panel). */

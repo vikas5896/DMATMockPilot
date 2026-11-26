@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatRange } from "@/content/site/batches";
 import { getPublicBatches } from "@/lib/batch-store";
+import { PLANS } from "@/content/site/plans";
 import { Badge, ButtonLink, PageHero, Section } from "@/components/site/ui";
 import { pageMetadata } from "@/lib/seo";
 
@@ -29,10 +30,10 @@ const PILLARS = [
   },
   {
     title: "Study in Germany",
-    text: "From shortlisting universities to APS, applications, blocked account and visa. Our full consultancy service is launching soon.",
-    href: "/study-in-germany",
-    cta: "Join the waitlist",
-    badge: "Coming soon",
+    text: "From shortlisting universities to APS, applications, blocked account and visa: the Complete Germany Plan, with one team.",
+    href: "/plans#complete",
+    cta: "See the Complete Germany Plan",
+    badge: "Now open",
   },
 ];
 
@@ -114,6 +115,27 @@ export default async function Home() {
             </li>
           ))}
         </ol>
+      </Section>
+
+      <Section tone="soft" title="Choose how we help you" intro="Practise on your own, learn live, or let one team guide you all the way to your German student visa.">
+        <div className="grid gap-5 md:grid-cols-3">
+          {PLANS.map((p) => (
+            <Link
+              key={p.id}
+              href={`/plans#${p.id}`}
+              className={`flex flex-col rounded-xl bg-white p-6 transition hover:shadow-md ${
+                p.id === "complete" ? "border-2 border-brand" : "border border-zinc-200"
+              }`}
+            >
+              {p.highlight && <Badge tone={p.id === "complete" ? "brand" : "green"}>{p.highlight}</Badge>}
+              <h3 className="mt-3 text-lg font-bold">{p.name}</h3>
+              <p className="mt-1 flex-1 text-sm text-zinc-600">{p.tagline}</p>
+              <p className="mt-4 text-2xl font-bold text-brand">{p.price}</p>
+              <p className="text-xs text-zinc-500">{p.priceNote}</p>
+              <p className="mt-4 text-sm font-semibold text-brand">See what’s included →</p>
+            </Link>
+          ))}
+        </div>
       </Section>
 
       <section className="bg-brand text-white">

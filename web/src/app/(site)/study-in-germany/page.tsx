@@ -17,7 +17,7 @@ export default function StudyInGermanyPage() {
       <PageHero
         eyebrow="Study in Germany"
         title="From your first shortlist to your first day at a German university."
-        intro="We are building a complete guidance service for Indian students applying for a Master's in Germany. dMAT preparation is live today; the full consultancy is launching soon."
+        intro="One team for your whole Master's journey: dMAT preparation, profile building, university shortlisting, documents, APS, blocked account and visa guidance, from people who have been through it."
       />
 
       <Section title="Our services">
@@ -68,8 +68,8 @@ export default function StudyInGermanyPage() {
         <Faq
           items={[
             {
-              q: "When will the consultancy service start?",
-              a: "We are preparing it now. Join the waitlist below and you will be among the first to get a free profile check when we launch.",
+              q: "How do I get started?",
+              a: "Book a free profile check below. We look at your degree, grades and goals, and suggest the plan that fits you. All services are part of our Complete Germany Plan.",
             },
             {
               q: "Do I need the dMAT for every Master's programme?",
@@ -83,9 +83,15 @@ export default function StudyInGermanyPage() {
         />
       </Section>
 
-      <Section tone="soft" title="Join the waitlist" intro="Tell us about your degree and target intake. We will contact you when the consultancy opens, with a free first profile check.">
+      <Section tone="soft" title="Book a free profile check" intro="Tell us about your degree and target intake. We will call or WhatsApp you for a short, free profile check and suggest the plan that fits you.">
         <div className="max-w-2xl">
-          <LeadForm defaultInterest="consultancy" fixedInterest submitLabel="Join the waitlist" />
+          <p className="mb-6">
+            <Link href="/plans" className="font-semibold text-brand underline">
+              Compare our plans
+            </Link>{" "}
+            · Complete Germany Plan ₹14,999
+          </p>
+          <LeadForm defaultInterest="consultancy" fixedInterest submitLabel="Book my free profile check" />
         </div>
       </Section>
     </>

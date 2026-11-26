@@ -63,6 +63,10 @@ export default async function LiveClassesPage() {
               a: "Every session is recorded, so you can catch up before the next one.",
             },
             {
+              q: "Are mock tests included?",
+              a: "Yes. Every paid live course includes the Full Pack (full dMAT mocks 2–10 and every section test, worth ₹1,599) at no extra cost. The short webinar does not include it. See all our plans on the Plans page.",
+            },
+            {
               q: "How do I pay?",
               a: "After you register, we contact you with the fee and payment options. Online payment on the website is coming soon.",
             },

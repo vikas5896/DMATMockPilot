@@ -9,6 +9,7 @@ export const NAV = [
   { href: "/mock-tests", label: "Mock Tests" },
   { href: "/live-classes", label: "Live Classes" },
   { href: "/study-in-germany", label: "Study in Germany" },
+  { href: "/plans", label: "Plans" },
   { href: "/dmat-guide", label: "dMAT Guide" },
   { href: "/contact", label: "Contact" },
   { href: "/account", label: "My tests" },
