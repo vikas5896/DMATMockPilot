@@ -25,8 +25,8 @@ export default function StudyInGermanyPage() {
           {SERVICES.map((s) => {
             const card = (
               <>
-                <Badge tone={s.status === "available" ? "green" : "amber"}>
-                  {s.status === "available" ? "Available now" : "Coming soon"}
+                <Badge tone={s.badge ? "brand" : s.status === "available" ? "green" : "amber"}>
+                  {s.badge ?? (s.status === "available" ? "Available now" : "Coming soon")}
                 </Badge>
                 <h3 className="mt-3 font-semibold">{s.title}</h3>
                 <p className="mt-1 text-sm text-zinc-600">{s.text}</p>
@@ -69,7 +69,7 @@ export default function StudyInGermanyPage() {
           items={[
             {
               q: "How do I get started?",
-              a: "Book a free profile check below. We look at your degree, grades and goals, and suggest the plan that fits you. All services are part of our Complete Germany Plan.",
+              a: "Book a free profile evaluation below. We review your degree, grades, experience and goals at no cost. We take only a limited number of students each intake, so if we are confident we can help you, we invite you to join the Complete Germany Plan.",
             },
             {
               q: "Do I need the dMAT for every Master's programme?",
@@ -83,7 +83,12 @@ export default function StudyInGermanyPage() {
         />
       </Section>
 
-      <Section tone="soft" title="Book a free profile check" intro="Tell us about your degree and target intake. We will call or WhatsApp you for a short, free profile check and suggest the plan that fits you.">
+      <Section
+        tone="soft"
+        id="profile-evaluation"
+        title="Book your free profile evaluation"
+        intro="Tell us about your degree and target intake. We will call or WhatsApp you for a free profile evaluation. We take only a limited number of students each intake: if your profile is a good fit, we invite you to join the Complete Germany Plan."
+      >
         <div className="max-w-2xl">
           <p className="mb-6">
             <Link href="/plans" className="font-semibold text-brand underline">
@@ -91,7 +96,7 @@ export default function StudyInGermanyPage() {
             </Link>{" "}
             · Complete Germany Plan ₹14,999
           </p>
-          <LeadForm defaultInterest="consultancy" fixedInterest submitLabel="Book my free profile check" />
+          <LeadForm defaultInterest="consultancy" fixedInterest submitLabel="Book my free profile evaluation" />
         </div>
       </Section>
     </>

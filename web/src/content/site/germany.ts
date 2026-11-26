@@ -4,6 +4,8 @@ export type Service = {
   text: string;
   status: "available" | "soon";
   href?: string;
+  /** overrides the "Available now" badge, e.g. "Free" */
+  badge?: string;
 };
 
 export const SERVICES: Service[] = [
@@ -14,20 +16,21 @@ export const SERVICES: Service[] = [
     href: "/live-classes",
   },
   {
-    title: "Profile evaluation",
-    text: "An honest look at your degree, grades, experience and goals, and which German Master's programmes fit them.",
+    title: "APS certificate guidance",
+    text: "Step-by-step help with the APS India verification: documents, application and interview preparation.",
     status: "available",
     href: "/plans#complete",
+  },
+  {
+    title: "Free profile evaluation",
+    text: "An honest look at your degree, grades, experience and goals, and which German Master's programmes fit them. Free, with no obligation.",
+    status: "available",
+    href: "/study-in-germany#profile-evaluation",
+    badge: "Free",
   },
   {
     title: "University shortlisting",
     text: "A shortlist of public and private universities matched to your profile, budget and intake, with deadlines.",
-    status: "available",
-    href: "/plans#complete",
-  },
-  {
-    title: "APS certificate guidance",
-    text: "Step-by-step help with the APS India verification: documents, application and interview preparation.",
     status: "available",
     href: "/plans#complete",
   },
@@ -52,7 +55,8 @@ export const SERVICES: Service[] = [
   {
     title: "Pre-departure support",
     text: "Accommodation search, city registration (Anmeldung), opening a bank account and settling in.",
-    status: "soon",
+    status: "available",
+    href: "/plans#complete",
   },
 ];
 

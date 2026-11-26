@@ -30,9 +30,9 @@ const PILLARS = [
   },
   {
     title: "Study in Germany",
-    text: "From shortlisting universities to APS, applications, blocked account and visa: the Complete Germany Plan, with one team.",
-    href: "/plans#complete",
-    cta: "See the Complete Germany Plan",
+    text: "Start with a free profile evaluation. Then APS, shortlisting, applications, blocked account, visa and pre-departure, with one team. Limited seats each intake.",
+    href: "/study-in-germany#profile-evaluation",
+    cta: "Book a free profile evaluation",
     badge: "Now open",
   },
 ];

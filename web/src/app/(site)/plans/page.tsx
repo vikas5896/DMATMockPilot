@@ -7,7 +7,7 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   title: "Plans – dMAT Preparation and Study in Germany",
   description:
-    "Three ways to work with DMAT Mock Prep: dMAT mock tests, live dMAT classes with mock tests included, or the Complete Germany Plan with profile building, shortlisting, documents, APS, blocked account and visa guidance.",
+    "Three ways to work with DMAT Mock Prep: dMAT mock tests, live dMAT classes with mock tests included, or the Complete Germany Plan with APS, profile building, shortlisting, documents, blocked account, visa and pre-departure support.",
   path: "/plans",
 });
 
@@ -106,10 +106,10 @@ export default function PlansPage() {
       <Section title="How the Complete Germany Plan works">
         <ol className="grid gap-5 md:grid-cols-4">
           {[
-            ["Free profile check", "A short call about your degree, grades, goals and target intake."],
-            ["Your plan", "We confirm what fits you and share the payment details. Seats per intake are limited."],
+            ["Free profile evaluation", "We review your degree, grades, experience, goals and target intake, at no cost."],
+            ["Only if it’s a good fit", "We take a limited number of students each intake. If we are confident we can help you, we invite you to join."],
             ["dMAT and documents", "Live classes and mocks for the dMAT, while we build your profile and documents."],
-            ["Applications to visa", "Shortlisting, applications, APS, blocked account and visa guidance until you fly."],
+            ["Applications to arrival", "Shortlisting, applications, blocked account, visa and pre-departure support until you settle in Germany."],
           ].map(([t, d], i) => (
             <li key={t} className="rounded-xl border border-zinc-200 p-5">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">{i + 1}</span>
@@ -132,8 +132,8 @@ export default function PlansPage() {
               a: "No one can honestly guarantee that. Universities decide on admissions and the German embassy on visas. We help you prepare the strongest possible application and guide you through every step.",
             },
             {
-              q: "Why are seats in the Complete Germany Plan limited?",
-              a: "Every student gets personal attention for shortlisting, documents and visa preparation, so we take only a limited number of students per intake.",
+              q: "Why do you select students for the Complete Germany Plan?",
+              a: "Every student gets personal attention for shortlisting, documents and visa preparation, so we take only a limited number of students each intake. The profile evaluation is free: we offer the plan only when we are confident we can help you, and we tell you honestly if we are not.",
             },
             {
               q: "Can I start with mock tests and upgrade later?",
@@ -148,12 +148,12 @@ export default function PlansPage() {
       </Section>
 
       <Section
-        id="profile-check"
-        title="Book a free profile check"
-        intro="Tell us about your degree and target intake. We will call or WhatsApp you for a short, free profile check and suggest the plan that fits you."
+        id="profile-evaluation"
+        title="Book your free profile evaluation"
+        intro="Tell us about your degree and target intake. We will call or WhatsApp you for a free profile evaluation. We take only a limited number of students each intake: if your profile is a good fit, we invite you to join the Complete Germany Plan."
       >
         <div className="max-w-2xl">
-          <LeadForm defaultInterest="consultancy" fixedInterest submitLabel="Book my free profile check" />
+          <LeadForm defaultInterest="consultancy" fixedInterest submitLabel="Book my free profile evaluation" />
         </div>
       </Section>
     </>
