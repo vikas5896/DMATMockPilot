@@ -1,8 +1,12 @@
 import "server-only";
-import { and, asc, desc, eq, gt, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, ne } from "drizzle-orm";
 import { getDb, type Db } from "@/db";
-import { accessRequests, grants, packs, type Grant, type Pack } from "@/db/schema";
+import { accessRequests, grants, packs, type AccessRequest, type Grant, type Pack } from "@/db/schema";
+import { PLAN_PACK } from "@/lib/pricing";
 import type { CatalogKind, CatalogTest } from "@/lib/exam/catalog";
+
+/** Cache tag for public pages that show pack prices; refreshed when an admin saves a pack. */
+export const PACKS_TAG = "packs";
 
 /** Starter packs, copied into the database on first use. Prices and contents can then be edited in the admin panel. */
 const DEFAULT_PACKS: (typeof packs.$inferInsert)[] = [
@@ -27,8 +31,21 @@ const DEFAULT_PACKS: (typeof packs.$inferInsert)[] = [
 ];
 
 async function ensurePacks(db: Db) {
-  const [one] = await db.select({ slug: packs.slug }).from(packs).limit(1);
+  // the Germany plan row comes from a migration, so look for one of the test packs
+  const [one] = await db.select({ slug: packs.slug }).from(packs).where(ne(packs.slug, PLAN_PACK)).limit(1);
   if (!one) await db.insert(packs).values(DEFAULT_PACKS).onConflictDoNothing();
+}
+
+/** Whether an admin approved this student for the Complete Germany Plan (after the free profile evaluation). */
+export async function planApproval(studentId: number): Promise<AccessRequest | null> {
+  const db = await getDb();
+  const [r] = await db
+    .select()
+    .from(accessRequests)
+    .where(and(eq(accessRequests.studentId, studentId), eq(accessRequests.packSlug, PLAN_PACK), eq(accessRequests.status, "approved")))
+    .orderBy(desc(accessRequests.updatedAt))
+    .limit(1);
+  return r ?? null;
 }
 
 export async function listPacks(opts: { publishedOnly?: boolean } = {}): Promise<Pack[]> {
@@ -77,7 +94,7 @@ export async function openRequests(studentId: number) {
   return db
     .select()
     .from(accessRequests)
-    .where(and(eq(accessRequests.studentId, studentId), inArray(accessRequests.status, ["new", "contacted", "paid"])))
+    .where(and(eq(accessRequests.studentId, studentId), inArray(accessRequests.status, ["new", "contacted", "approved", "paid"])))
     .orderBy(desc(accessRequests.createdAt));
 }
 

@@ -7,6 +7,7 @@ import { currentStudent } from "@/lib/auth";
 import { paymentsEnabled } from "@/lib/payments";
 import { autoOffers } from "@/lib/promo";
 import { pageMetadata } from "@/lib/seo";
+import { PLAN_PACK } from "@/lib/pricing";
 
 export const metadata = pageMetadata({
   title: "dMAT Mock Test Packs – Prices",
@@ -89,7 +90,8 @@ export default function PacksPage() {
 
 async function PackList() {
   await connection(); // per-request: login check and expiry dates use the current time
-  const [list, me] = await Promise.all([listPacks({ publishedOnly: true }), currentStudent()]);
+  const [all, me] = await Promise.all([listPacks({ publishedOnly: true }), currentStudent()]);
+  const list = all.filter((p) => p.slug !== PLAN_PACK); // sold on /plans/complete-germany-plan
   const signedIn = !!(me?.name && me.phone);
   const [open, active] = signedIn ? await Promise.all([openRequests(me!.id), activeGrants(me!.id)]) : [[], []];
   const offers = await autoOffers(list.map((p) => ({ kind: "pack" as const, slug: p.slug })));

@@ -6,6 +6,7 @@ import {
   normalizeCode,
   parseItem,
   promoCovers,
+  PLAN_PACK,
   promoProblem,
   todayInIndia,
   type Item,
@@ -87,5 +88,17 @@ describe("automatic offer and entered codes", () => {
   });
   it("without an automatic offer, the entered code is used", () => {
     expect(chooseOffer(10, null)).toBe("entered");
+  });
+});
+
+describe("Complete Germany Plan and promo codes", () => {
+  const PLAN = { kind: "pack" as const, slug: PLAN_PACK };
+  it("is not covered by codes for all packs (e.g. the automatic PREP20)", () => {
+    expect(promoCovers({ appliesToAll: true, packSlugs: [], classSlugs: [] }, PLAN)).toBe(false);
+  });
+  it("is covered only when the code ticks it explicitly", () => {
+    expect(promoCovers({ appliesToAll: true, packSlugs: [PLAN_PACK], classSlugs: [] }, PLAN)).toBe(true);
+    expect(promoCovers({ appliesToAll: false, packSlugs: [PLAN_PACK], classSlugs: [] }, PLAN)).toBe(true);
+    expect(promoCovers({ appliesToAll: false, packSlugs: ["full-pack"], classSlugs: [] }, PLAN)).toBe(false);
   });
 });

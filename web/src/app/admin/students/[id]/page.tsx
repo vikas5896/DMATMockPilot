@@ -2,13 +2,14 @@ import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { revokeGrantAction } from "@/app/admin/actions";
+import { revokeGrantAction, setPlanApprovalAction } from "@/app/admin/actions";
 import { AdminShell, Loading } from "@/components/admin/AdminShell";
 import { getDb } from "@/db";
 import { accessRequests, attempts, classEnrollments, grants, students } from "@/db/schema";
 import { listAllBatches } from "@/lib/batch-store";
 import { listPacks } from "@/lib/access";
 import { requireAdmin } from "@/lib/auth";
+import { PLAN_PACK } from "@/lib/pricing";
 import { parseTestId } from "@/lib/exam/catalog";
 import { WA, waLink } from "@/lib/wa-templates";
 import { GrantForm } from "./GrantForm";
@@ -48,10 +49,17 @@ async function StudentDetail({ params, searchParams }: Props) {
   // granting from a request: use its price and promo code (else the newest open request)
   const reqId = typeof sp.request === "string" ? Number(sp.request) : 0;
   const fromRequest =
-    reqs.find((r) => r.id === reqId) ?? reqs.find((r) => ["new", "contacted", "paid"].includes(r.status));
+    reqs.find((r) => r.id === reqId) ?? reqs.find((r) => ["new", "contacted", "approved", "paid"].includes(r.status));
+  const planApproved = reqs.some((r) => r.packSlug === PLAN_PACK && r.status === "approved");
+  const planActive = gs.some((g) => g.packSlug === PLAN_PACK && !g.revokedAt && g.expiresAt > now);
 
   return (
     <AdminShell email={email} active="/admin/students" title={s.name ?? s.email}>
+      {sp.approved && (
+        <p className="mb-4 rounded-md bg-violet-50 px-4 py-2 text-sm text-violet-800">
+          Approved for the Complete Germany Plan. We emailed the student the payment link.
+        </p>
+      )}
       {sp.granted && (
         <p className="mb-4 rounded-md bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
           Access granted. The tests are unlocked for this student now.
@@ -160,6 +168,35 @@ async function StudentDetail({ params, searchParams }: Props) {
               </ul>
             </div>
           )}
+
+          <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-5 text-sm">
+            <p className="font-semibold">Complete Germany Plan</p>
+            {planActive ? (
+              <p className="mt-1 text-emerald-700">✓ Enrolled (paid). All mock tests are unlocked.</p>
+            ) : planApproved ? (
+              <>
+                <p className="mt-1 text-violet-800">Approved: the student can pay online at /plans/complete-germany-plan.</p>
+                <form action={setPlanApprovalAction} className="mt-3">
+                  <input type="hidden" name="studentId" value={s.id} />
+                  <input type="hidden" name="mode" value="revoke" />
+                  <button className="rounded border border-zinc-300 px-3 py-1.5 text-xs hover:bg-white">Take approval back</button>
+                </form>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 text-zinc-600">
+                  After the free profile evaluation, approve this student if they are a good fit. They get an email with the
+                  payment link, and only approved students can pay.
+                </p>
+                <form action={setPlanApprovalAction} className="mt-3">
+                  <input type="hidden" name="studentId" value={s.id} />
+                  <button className="rounded-md bg-violet-700 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-800">
+                    Approve and email payment link
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
 
           {reqs.length > 0 && (
             <div className="rounded-xl border border-zinc-200 bg-white p-5 text-sm">

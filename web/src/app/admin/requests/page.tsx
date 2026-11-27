@@ -15,6 +15,7 @@ type SP = Promise<{ [k: string]: string | string[] | undefined }>;
 const STYLE: Record<string, string> = {
   new: "bg-brand-soft text-brand",
   contacted: "bg-amber-50 text-amber-800",
+  approved: "bg-violet-50 text-violet-800",
   paid: "bg-sky-50 text-sky-800",
   granted: "bg-emerald-50 text-emerald-700",
   closed: "bg-zinc-100 text-zinc-500",
@@ -43,7 +44,7 @@ async function Requests({ searchParams }: { searchParams: SP }) {
     listPacks(),
   ]);
   const shown = rows.filter(({ r }) =>
-    filter === "all" ? true : filter === "open" ? ["new", "contacted", "paid"].includes(r.status) : r.status === filter,
+    filter === "all" ? true : filter === "open" ? ["new", "contacted", "approved", "paid"].includes(r.status) : r.status === filter,
   );
   const pack = (slug: string) => packList.find((p) => p.slug === slug);
   const back = `/admin/requests${filter !== "open" ? `?status=${filter}` : ""}`;

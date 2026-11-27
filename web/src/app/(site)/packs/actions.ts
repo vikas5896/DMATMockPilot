@@ -2,7 +2,7 @@
 
 import { currentStudent, isValidEmail, PHONE_RE, studentForBooking } from "@/lib/auth";
 import type { Student } from "@/db/schema";
-import { activeGrants, createRequest, getPack } from "@/lib/access";
+import { activeGrants, createRequest, getPack, planApproval } from "@/lib/access";
 import {
   createRazorpayOrder,
   fulfillPayment,
@@ -15,7 +15,7 @@ import {
   recordOrder,
 } from "@/lib/payments";
 import { verifyPaymentSignature } from "@/lib/razorpay-signature";
-import { normalizeCode, parseItem } from "@/lib/pricing";
+import { normalizeCode, parseItem, PLAN_PACK } from "@/lib/pricing";
 import { getItemInfo, resolvePromo, type ResolvedPromo } from "@/lib/promo";
 import { BRAND } from "@/lib/brand";
 import { notifyAdmins, sendEmail, signature } from "@/lib/email";
@@ -145,7 +145,11 @@ async function startOrder(me: Student, itemKey: string, promoCode?: string): Pro
     return { ok: false, error: `This ${item.kind === "pack" ? "pack" : "class"} cannot be bought online.` };
   }
   if (item.kind === "pack" && (await activeGrants(me.id)).some((g) => g.packSlug === item.slug)) {
-    return { ok: false, error: "You already have this pack." };
+    return { ok: false, error: item.slug === PLAN_PACK ? "You are already enrolled in the Complete Germany Plan." : "You already have this pack." };
+  }
+  // the Complete Germany Plan: only after a free profile evaluation and our approval
+  if (item.kind === "pack" && item.slug === PLAN_PACK && !(await planApproval(me.id))) {
+    return { ok: false, error: "The Complete Germany Plan opens after your free profile evaluation. Book one on our Plans page." };
   }
   if (item.kind === "class" && (await isEnrolled(me.id, item.slug))) {
     return { ok: false, error: "You are already enrolled in this class." };

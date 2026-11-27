@@ -6,6 +6,7 @@ import { activeGrants, listPacks, openRequests, unlockedKinds } from "@/lib/acce
 import Link from "next/link";
 import { studentLogoutAction } from "../login/actions";
 import { studentClasses } from "@/lib/payments";
+import { PLAN_PACK } from "@/lib/pricing";
 
 export const metadata = { title: "My tests", robots: { index: false, follow: false } };
 
@@ -89,11 +90,21 @@ async function Account() {
                   ✓ <strong>{packName(g.packSlug)}</strong> active until {fmt(g.expiresAt)}
                 </p>
               ))}
-              {open.map((r) => (
-                <p key={`r${r.id}`} className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  ⏳ <strong>{packName(r.packSlug)}</strong> requested: we will contact you with the payment details.
-                </p>
-              ))}
+              {open.map((r) =>
+                r.packSlug === PLAN_PACK && r.status === "approved" ? (
+                  <Link
+                    key={`r${r.id}`}
+                    href="/plans/complete-germany-plan"
+                    className="rounded-lg border-2 border-violet-300 bg-violet-50 px-4 py-3 text-sm text-violet-900 hover:bg-violet-100"
+                  >
+                    🎉 You’re approved for the <strong>Complete Germany Plan</strong>. Confirm your seat →
+                  </Link>
+                ) : (
+                  <p key={`r${r.id}`} className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    ⏳ <strong>{packName(r.packSlug)}</strong> requested: we will contact you with the payment details.
+                  </p>
+                ),
+              )}
             </div>
           )}
           <TestCatalog statuses={statuses} signedIn unlocked={[...kinds]} />

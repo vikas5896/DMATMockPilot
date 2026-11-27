@@ -94,7 +94,7 @@ export const accessRequests = pgTable("access_requests", {
   /** promo code applied when requesting, and the price we quoted */
   promoCode: text("promo_code"),
   quotedPriceInr: integer("quoted_price_inr"),
-  /** new → contacted → paid → granted / closed */
+  /** new → contacted → (approved: may pay online, Germany plan) → paid → granted / closed */
   status: text("status").notNull().default("new"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -141,7 +141,7 @@ export type PromoCode = typeof promoCodes.$inferSelect;
 export type Pack = typeof packs.$inferSelect;
 export type AccessRequest = typeof accessRequests.$inferSelect;
 export type Grant = typeof grants.$inferSelect;
-export const REQUEST_STATUSES = ["new", "contacted", "paid", "granted", "closed"] as const;
+export const REQUEST_STATUSES = ["new", "contacted", "approved", "paid", "granted", "closed"] as const;
 export type Student = typeof students.$inferSelect;
 export type AttemptRow = typeof attempts.$inferSelect;
 export type Lead = typeof leads.$inferSelect;

@@ -104,7 +104,7 @@ export function PromoForm({
         <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1">
           <label className="flex items-center gap-2">
             <input type="radio" name="scope" value="all" checked={scope === "all"} onChange={() => setScope("all")} className="h-4 w-4 accent-[var(--brand)]" />
-            All packs and live classes
+            All packs and live classes <span className="text-xs text-zinc-500">(not the Complete Germany Plan: tick it under “Selected”)</span>
           </label>
           <label className="flex items-center gap-2">
             <input

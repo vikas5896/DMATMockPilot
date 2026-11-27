@@ -5,8 +5,8 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { accessRequests, grants, LEAD_STATUSES, leads, packs, promoCodes, REQUEST_STATUSES, students, type LeadStatus } from "@/db/schema";
-import { getPack, listPacks } from "@/lib/access";
-import { normalizeCode } from "@/lib/pricing";
+import { getPack, listPacks, PACKS_TAG } from "@/lib/access";
+import { normalizeCode, PLAN_PACK } from "@/lib/pricing";
 import { getPromo } from "@/lib/promo";
 import { testRazorpayConnection } from "@/lib/payments";
 import { BRAND } from "@/lib/brand";
@@ -166,6 +166,73 @@ export async function revokeGrantAction(fd: FormData) {
   redirect(`/admin/students/${studentId}`);
 }
 
+// ---------- Complete Germany Plan approval ----------
+/**
+ * After the free profile evaluation: let this student pay for the Complete Germany Plan online.
+ * Marks their plan request "approved" (creating one if needed) and emails them the payment link.
+ * mode=revoke takes the approval back (the request goes to "closed").
+ */
+export async function setPlanApprovalAction(fd: FormData) {
+  await requireAdmin();
+  const studentId = Number(fd.get("studentId"));
+  const mode = String(fd.get("mode") ?? "approve");
+  if (!Number.isInteger(studentId)) return;
+  const db = await getDb();
+  const [s] = await db.select().from(students).where(eq(students.id, studentId));
+  if (!s) return;
+  const open = await db
+    .select()
+    .from(accessRequests)
+    .where(
+      and(
+        eq(accessRequests.studentId, studentId),
+        eq(accessRequests.packSlug, PLAN_PACK),
+        inArray(accessRequests.status, ["new", "contacted", "approved", "paid"]),
+      ),
+    );
+  if (mode === "revoke") {
+    if (open.length) {
+      await db
+        .update(accessRequests)
+        .set({ status: "closed", updatedAt: new Date() })
+        .where(inArray(accessRequests.id, open.map((r) => r.id)));
+    }
+    redirect(`/admin/students/${studentId}`);
+  }
+  const plan = await getPack(PLAN_PACK);
+  if (open.length) {
+    await db
+      .update(accessRequests)
+      .set({ status: "approved", updatedAt: new Date() })
+      .where(inArray(accessRequests.id, open.map((r) => r.id)));
+  } else {
+    await db.insert(accessRequests).values({
+      studentId,
+      packSlug: PLAN_PACK,
+      status: "approved",
+      quotedPriceInr: plan?.priceInr ?? null,
+      message: "Approved after the free profile evaluation",
+    });
+  }
+  const price = plan?.priceInr != null ? `₹${plan.priceInr.toLocaleString("en-IN")}` : "";
+  await sendEmail({
+    to: s.email,
+    subject: `You're approved for the ${BRAND.name} Complete Germany Plan`,
+    text: [
+      `Hi ${(s.name ?? "").split(" ")[0] || "there"},`,
+      "",
+      "Thank you for your profile evaluation. We'd be glad to guide you through your Master's journey to Germany.",
+      `Your seat in the Complete Germany Plan${price ? ` (${price})` : ""} is reserved for you. To confirm it, log in with this email address and complete the payment here:`,
+      `${SITE_URL}/plans/complete-germany-plan`,
+      "",
+      "Questions before you join? Just reply to this email or message us on WhatsApp.",
+      signature(),
+    ].join("\n"),
+    replyTo: BRAND.contact.email || undefined,
+  });
+  redirect(`/admin/students/${studentId}?approved=1`);
+}
+
 // ---------- packs ----------
 export type PackFormState = { error?: string };
 
@@ -195,6 +262,7 @@ export async function savePackAction(prev: PackFormState, fd: FormData): Promise
   if (original && original !== slug) return { error: "The short name of an existing pack cannot be changed." };
   if (!original && (await getPack(slug))) return { error: "A pack with this short name already exists." };
   await db.insert(packs).values(values).onConflictDoUpdate({ target: packs.slug, set: values });
+  updateTag(PACKS_TAG); // e.g. the Complete Germany Plan price on /plans
   redirect("/admin/packs?saved=1");
 }
 

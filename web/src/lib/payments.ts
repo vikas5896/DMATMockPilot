@@ -140,7 +140,7 @@ export async function fulfillPayment(orderId: string, paymentId: string, paidAmo
       and(
         eq(accessRequests.studentId, claimed.studentId),
         eq(accessRequests.packSlug, claimed.packSlug!),
-        inArray(accessRequests.status, ["new", "contacted", "paid"]),
+        inArray(accessRequests.status, ["new", "contacted", "approved", "paid"]),
       ),
     );
 

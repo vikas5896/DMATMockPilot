@@ -13,6 +13,7 @@ import {
 import { BRAND, waHref } from "@/lib/brand";
 import { PROMO_KEY } from "./PromoCatcher";
 import { track } from "@/lib/pixel";
+import { PLAN_PACK } from "@/lib/pricing";
 
 export type PackInfo = {
   slug: string;
@@ -320,7 +321,10 @@ export function PackCard({
               {paying ? "Opening payment…" : `Pay ${rupees(finalPrice!)} now`}
             </button>
             <p className="mt-2 text-xs text-zinc-500">
-              UPI, cards or netbanking via Razorpay. Your tests unlock right after payment.{" "}
+              UPI, cards or netbanking via Razorpay.{" "}
+              {pack.slug === PLAN_PACK
+                ? "Your seat is confirmed and your mock tests unlock right after payment."
+                : "Your tests unlock right after payment."}{" "}
               <button type="button" onClick={() => setShowRequest(true)} className="underline">
                 Prefer bank transfer?
               </button>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlanPrice } from "@/components/site/PlanPrice";
 import { COMPARE, PLANS } from "@/content/site/plans";
 import { LeadForm } from "@/components/site/LeadForm";
 import { Faq, PageHero, Section } from "@/components/site/ui";
@@ -43,7 +44,7 @@ export default function PlansPage() {
                 )}
                 <h2 className="text-2xl font-bold">{p.name}</h2>
                 <p className="mt-1 text-zinc-600">{p.tagline}</p>
-                <p className="mt-5 text-4xl font-bold text-brand">{p.price}</p>
+                <p className="mt-5 text-4xl font-bold text-brand">{p.id === "complete" ? <PlanPrice fallback={p.price} /> : p.price}</p>
                 <p className="text-sm text-zinc-500">{p.priceNote}</p>
                 <ul className="mt-6 flex-1 space-y-2.5">
                   {p.bullets.map((b) => (
@@ -64,6 +65,11 @@ export default function PlansPage() {
                   >
                     {p.cta.label}
                   </Link>
+                  {p.id === "complete" && (
+                    <Link href="/plans/complete-germany-plan" className="block text-center text-sm text-brand underline">
+                      Already approved? Confirm your seat
+                    </Link>
+                  )}
                   {p.secondary && (
                     <Link href={p.secondary.href} className="block text-center text-sm text-brand underline">
                       {p.secondary.label}

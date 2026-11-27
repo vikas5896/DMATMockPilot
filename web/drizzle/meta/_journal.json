@@ -64,6 +64,13 @@
       "when": 1795334926709,
       "tag": "0008_webinar_price_49",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795755177586,
+      "tag": "0009_germany_plan_pack",
+      "breakpoints": true
     }
   ]
 }
