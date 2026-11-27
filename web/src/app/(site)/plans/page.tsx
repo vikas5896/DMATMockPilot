@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PlanPrice } from "@/components/site/PlanPrice";
 import { COMPARE, PLANS } from "@/content/site/plans";
-import { ButtonLink, Faq, PageHero, Section } from "@/components/site/ui";
+import { Faq, PageHero, Section } from "@/components/site/ui";
+import { EvaluationCta } from "@/components/site/EvaluationCta";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -56,17 +57,14 @@ export default function PlansPage() {
                   ))}
                 </ul>
                 <div className="mt-7 space-y-2">
-                  <Link
-                    href={p.cta.href}
-                    className={`block rounded-md px-5 py-3 text-center font-semibold transition ${
-                      top ? "bg-brand text-white hover:bg-brand-dark" : "border border-brand text-brand hover:bg-brand-soft"
-                    }`}
-                  >
-                    {p.cta.label}
-                  </Link>
-                  {p.id === "complete" && (
-                    <Link href="/plans/complete-germany-plan" className="block text-center text-sm text-brand underline">
-                      Already approved? Confirm your seat
+                  {p.id === "complete" ? (
+                    <EvaluationCta block showNote={false} start={p.cta} />
+                  ) : (
+                    <Link
+                      href={p.cta.href}
+                      className="block rounded-md border border-brand px-5 py-3 text-center font-semibold text-brand transition hover:bg-brand-soft"
+                    >
+                      {p.cta.label}
                     </Link>
                   )}
                   {p.secondary && (
@@ -158,8 +156,7 @@ export default function PlansPage() {
         intro="Share your degree details and your transcript or semester results. We evaluate your profile within 48 hours, free of cost. We take only a limited number of students each intake: if your profile is a good fit, we call you and invite you to join the Complete Germany Plan."
       >
         <div className="max-w-2xl">
-          <ButtonLink href="/profile-evaluation">Start my free profile evaluation</ButtonLink>
-          <p className="mt-3 text-sm text-zinc-600">Takes 3 minutes: your degree details and your transcript or semester results. We reply within 48 hours.</p>
+          <EvaluationCta />
         </div>
       </Section>
     </>

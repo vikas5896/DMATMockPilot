@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { JOURNEY, SERVICES } from "@/content/site/germany";
-import { Badge, ButtonLink, Faq, PageHero, Section } from "@/components/site/ui";
+import { Badge, Faq, PageHero, Section } from "@/components/site/ui";
+import { EvaluationCta } from "@/components/site/EvaluationCta";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -95,8 +96,7 @@ export default function StudyInGermanyPage() {
             </Link>{" "}
             · Complete Germany Plan ₹14,999
           </p>
-          <ButtonLink href="/profile-evaluation">Start my free profile evaluation</ButtonLink>
-          <p className="mt-3 text-sm text-zinc-600">Takes 3 minutes: your degree details and your transcript or semester results. We reply within 48 hours.</p>
+          <EvaluationCta />
         </div>
       </Section>
     </>
