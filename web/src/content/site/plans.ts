@@ -62,7 +62,7 @@ export const PLANS: Plan[] = [
       "Student visa guidance and mock interview",
       "Pre-departure support: accommodation, Anmeldung, bank account",
     ],
-    cta: { label: "Book a free profile evaluation", href: "#profile-evaluation" },
+    cta: { label: "Book a free profile evaluation", href: "/profile-evaluation" },
   },
 ];
 

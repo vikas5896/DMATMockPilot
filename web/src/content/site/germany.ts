@@ -25,7 +25,7 @@ export const SERVICES: Service[] = [
     title: "Free profile evaluation",
     text: "An honest look at your degree, grades, experience and goals, and which German Master's programmes fit them. Free, with no obligation.",
     status: "available",
-    href: "/study-in-germany#profile-evaluation",
+    href: "/profile-evaluation",
     badge: "Free",
   },
   {

@@ -15,7 +15,7 @@ const COLUMNS = [
     links: [
       { href: "/study-in-germany", label: "Study in Germany" },
       { href: "/plans", label: "Plans" },
-      { href: "/study-in-germany#profile-evaluation", label: "Free profile evaluation" },
+      { href: "/profile-evaluation", label: "Free profile evaluation" },
     ],
   },
   {

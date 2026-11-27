@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { JOURNEY, SERVICES } from "@/content/site/germany";
-import { LeadForm } from "@/components/site/LeadForm";
-import { Badge, Faq, PageHero, Section } from "@/components/site/ui";
+import { Badge, ButtonLink, Faq, PageHero, Section } from "@/components/site/ui";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -87,7 +86,7 @@ export default function StudyInGermanyPage() {
         tone="soft"
         id="profile-evaluation"
         title="Book your free profile evaluation"
-        intro="Tell us about your degree and target intake. We will call or WhatsApp you for a free profile evaluation. We take only a limited number of students each intake: if your profile is a good fit, we invite you to join the Complete Germany Plan."
+        intro="Share your degree details and your transcript or semester results. We evaluate your profile within 48 hours, free of cost. We take only a limited number of students each intake: if your profile is a good fit, we call you and invite you to join the Complete Germany Plan."
       >
         <div className="max-w-2xl">
           <p className="mb-6">
@@ -96,7 +95,8 @@ export default function StudyInGermanyPage() {
             </Link>{" "}
             · Complete Germany Plan ₹14,999
           </p>
-          <LeadForm defaultInterest="consultancy" fixedInterest submitLabel="Book my free profile evaluation" />
+          <ButtonLink href="/profile-evaluation">Start my free profile evaluation</ButtonLink>
+          <p className="mt-3 text-sm text-zinc-600">Takes 3 minutes: your degree details and your transcript or semester results. We reply within 48 hours.</p>
         </div>
       </Section>
     </>

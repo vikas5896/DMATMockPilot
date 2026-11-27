@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { PlanPrice } from "@/components/site/PlanPrice";
 import { COMPARE, PLANS } from "@/content/site/plans";
-import { LeadForm } from "@/components/site/LeadForm";
-import { Faq, PageHero, Section } from "@/components/site/ui";
+import { ButtonLink, Faq, PageHero, Section } from "@/components/site/ui";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
@@ -156,10 +155,11 @@ export default function PlansPage() {
       <Section
         id="profile-evaluation"
         title="Book your free profile evaluation"
-        intro="Tell us about your degree and target intake. We will call or WhatsApp you for a free profile evaluation. We take only a limited number of students each intake: if your profile is a good fit, we invite you to join the Complete Germany Plan."
+        intro="Share your degree details and your transcript or semester results. We evaluate your profile within 48 hours, free of cost. We take only a limited number of students each intake: if your profile is a good fit, we call you and invite you to join the Complete Germany Plan."
       >
         <div className="max-w-2xl">
-          <LeadForm defaultInterest="consultancy" fixedInterest submitLabel="Book my free profile evaluation" />
+          <ButtonLink href="/profile-evaluation">Start my free profile evaluation</ButtonLink>
+          <p className="mt-3 text-sm text-zinc-600">Takes 3 minutes: your degree details and your transcript or semester results. We reply within 48 hours.</p>
         </div>
       </Section>
     </>

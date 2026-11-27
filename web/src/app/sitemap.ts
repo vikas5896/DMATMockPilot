@@ -9,6 +9,7 @@ const PAGES: [path: string, priority: number, freq: "daily" | "weekly" | "monthl
   ["/dmat-guide", 0.8, "monthly"],
   ["/study-in-germany", 0.7, "monthly"],
   ["/plans", 0.8, "monthly"],
+  ["/profile-evaluation", 0.7, "monthly"],
   ["/about", 0.4, "yearly"],
   ["/contact", 0.5, "yearly"],
   ["/privacy", 0.2, "yearly"],

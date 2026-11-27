@@ -34,6 +34,11 @@ export default function PrivacyPage() {
                 <strong>Enquiry and registration forms:</strong> your name, email address, phone number, message, and the
                 class or service you are interested in.
               </li>
+              <li>
+                <strong>Free profile evaluation:</strong> your degree details, scores, target course and intake, and the
+                document you upload (your transcript or semester results). Only our team can see the document; we use it only
+                to evaluate your profile and advise you, and we delete it when you ask us to.
+              </li>
             </ul>
           </div>
           <div>

@@ -71,6 +71,13 @@
       "when": 1795755177586,
       "tag": "0009_germany_plan_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795756652174,
+      "tag": "0010_profile_evaluations",
+      "breakpoints": true
     }
   ]
 }

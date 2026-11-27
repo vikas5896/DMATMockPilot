@@ -7,6 +7,14 @@ import Link from "next/link";
 import { studentLogoutAction } from "../login/actions";
 import { studentClasses } from "@/lib/payments";
 import { PLAN_PACK } from "@/lib/pricing";
+import { latestEvaluation } from "@/lib/evaluation-store";
+
+const EVAL_TEXT: Record<string, string> = {
+  submitted: "⏳ Your profile is under evaluation (up to 48 hours).",
+  fit: "✓ Profile evaluated: good news, it’s a fit! We will call you.",
+  not_fit: "Your profile evaluation result is ready.",
+  call_done: "🎉 Profile evaluated and call done: confirm your seat in the Complete Germany Plan.",
+};
 
 export const metadata = { title: "My tests", robots: { index: false, follow: false } };
 
@@ -20,7 +28,7 @@ export default function AccountPage() {
 
 async function Account() {
   const me = await requireStudent("/account");
-  const [rows, statuses, grantsActive, open, packList, kinds, classes] = await Promise.all([
+  const [rows, statuses, grantsActive, open, packList, kinds, classes, evaluation] = await Promise.all([
     listAttempts(me.id),
     catalogStatuses(me.id),
     activeGrants(me.id),
@@ -28,7 +36,9 @@ async function Account() {
     listPacks(),
     unlockedKinds(me.id),
     studentClasses(me.id),
+    latestEvaluation(me.id),
   ]);
+  const hasPlan = grantsActive.some((g) => g.packSlug === PLAN_PACK);
   const packName = (slug: string) => packList.find((p) => p.slug === slug)?.name ?? slug;
   const fmt = (d: Date) => d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
   const done = rows.filter((r) => r.status === "completed").length;
@@ -57,6 +67,14 @@ async function Account() {
       </section>
       <section className="bg-zinc-50">
         <div className="mx-auto max-w-6xl px-6 py-10">
+          {evaluation && !hasPlan && (
+            <Link
+              href="/profile-evaluation"
+              className="mb-6 block rounded-lg border-2 border-violet-300 bg-violet-50 px-4 py-3 text-sm text-violet-900 hover:bg-violet-100"
+            >
+              <strong>Free profile evaluation:</strong> {EVAL_TEXT[evaluation.status] ?? "See your status"} →
+            </Link>
+          )}
           {classes.length > 0 && (
             <div className="mb-8">
               <h2 className="mb-3 text-lg font-bold">Your live classes</h2>
@@ -92,6 +110,7 @@ async function Account() {
               ))}
               {open.map((r) =>
                 r.packSlug === PLAN_PACK && r.status === "approved" ? (
+                  evaluation?.status === "call_done" ? null : (
                   <Link
                     key={`r${r.id}`}
                     href="/plans/complete-germany-plan"
@@ -99,6 +118,7 @@ async function Account() {
                   >
                     🎉 You’re approved for the <strong>Complete Germany Plan</strong>. Confirm your seat →
                   </Link>
+                  )
                 ) : (
                   <p key={`r${r.id}`} className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                     ⏳ <strong>{packName(r.packSlug)}</strong> requested: we will contact you with the payment details.

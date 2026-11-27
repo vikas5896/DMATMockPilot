@@ -4,9 +4,23 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { accessRequests, grants, LEAD_STATUSES, leads, packs, promoCodes, REQUEST_STATUSES, students, type LeadStatus } from "@/db/schema";
+import {
+  accessRequests,
+  EVALUATION_STATUSES,
+  grants,
+  LEAD_STATUSES,
+  leads,
+  packs,
+  profileEvaluations,
+  promoCodes,
+  REQUEST_STATUSES,
+  students,
+  type EvaluationStatus,
+  type LeadStatus,
+} from "@/db/schema";
+import { approvePlan, emailEvaluated, revokePlan } from "@/lib/evaluation-store";
 import { getPack, listPacks, PACKS_TAG } from "@/lib/access";
-import { normalizeCode, PLAN_PACK } from "@/lib/pricing";
+import { normalizeCode } from "@/lib/pricing";
 import { getPromo } from "@/lib/promo";
 import { testRazorpayConnection } from "@/lib/payments";
 import { BRAND } from "@/lib/brand";
@@ -180,57 +194,60 @@ export async function setPlanApprovalAction(fd: FormData) {
   const db = await getDb();
   const [s] = await db.select().from(students).where(eq(students.id, studentId));
   if (!s) return;
-  const open = await db
-    .select()
-    .from(accessRequests)
-    .where(
-      and(
-        eq(accessRequests.studentId, studentId),
-        eq(accessRequests.packSlug, PLAN_PACK),
-        inArray(accessRequests.status, ["new", "contacted", "approved", "paid"]),
-      ),
-    );
   if (mode === "revoke") {
-    if (open.length) {
-      await db
-        .update(accessRequests)
-        .set({ status: "closed", updatedAt: new Date() })
-        .where(inArray(accessRequests.id, open.map((r) => r.id)));
-    }
+    await revokePlan(studentId);
     redirect(`/admin/students/${studentId}`);
   }
-  const plan = await getPack(PLAN_PACK);
-  if (open.length) {
-    await db
-      .update(accessRequests)
-      .set({ status: "approved", updatedAt: new Date() })
-      .where(inArray(accessRequests.id, open.map((r) => r.id)));
-  } else {
-    await db.insert(accessRequests).values({
-      studentId,
-      packSlug: PLAN_PACK,
-      status: "approved",
-      quotedPriceInr: plan?.priceInr ?? null,
-      message: "Approved after the free profile evaluation",
-    });
-  }
-  const price = plan?.priceInr != null ? `₹${plan.priceInr.toLocaleString("en-IN")}` : "";
-  await sendEmail({
-    to: s.email,
-    subject: `You're approved for the ${BRAND.name} Complete Germany Plan`,
-    text: [
-      `Hi ${(s.name ?? "").split(" ")[0] || "there"},`,
-      "",
-      "Thank you for your profile evaluation. We'd be glad to guide you through your Master's journey to Germany.",
-      `Your seat in the Complete Germany Plan${price ? ` (${price})` : ""} is reserved for you. To confirm it, log in with this email address and complete the payment here:`,
-      `${SITE_URL}/plans/complete-germany-plan`,
-      "",
-      "Questions before you join? Just reply to this email or message us on WhatsApp.",
-      signature(),
-    ].join("\n"),
-    replyTo: BRAND.contact.email || undefined,
-  });
+  await approvePlan(s);
   redirect(`/admin/students/${studentId}?approved=1`);
+}
+
+// ---------- profile evaluations ----------
+/**
+ * submitted → fit / not_fit (emails the result) → call_done (after our call: approves the plan and emails the payment link).
+ * Moving away from call_done takes the plan approval back.
+ */
+export async function setEvaluationStatusAction(fd: FormData) {
+  await requireAdmin();
+  const id = Number(fd.get("id"));
+  const status = String(fd.get("status") ?? "") as EvaluationStatus;
+  if (!Number.isInteger(id) || !EVALUATION_STATUSES.includes(status)) return;
+  const db = await getDb();
+  const [e] = await db.select({ id: profileEvaluations.id, studentId: profileEvaluations.studentId, status: profileEvaluations.status }).from(profileEvaluations).where(eq(profileEvaluations.id, id));
+  if (!e) return;
+  const [s] = await db.select().from(students).where(eq(students.id, e.studentId));
+  if (!s) return;
+  const noteRaw = fd.get("noteToStudent");
+  const note = typeof noteRaw === "string" ? noteRaw.trim().slice(0, 1000) || null : undefined;
+  const now = new Date();
+  await db
+    .update(profileEvaluations)
+    .set({
+      status,
+      updatedAt: now,
+      ...(note !== undefined ? { noteToStudent: note } : {}),
+      ...(status === "fit" || status === "not_fit" ? { evaluatedAt: now } : {}),
+      ...(status === "call_done" ? { calledAt: now } : {}),
+    })
+    .where(eq(profileEvaluations.id, id));
+  if (status === "call_done") await approvePlan(s);
+  else if (e.status === "call_done") await revokePlan(s.id);
+  if ((status === "fit" || status === "not_fit") && e.status !== status && fd.get("notify") !== "0") {
+    await emailEvaluated(s, status, note ?? null);
+  }
+  redirect(`/admin/evaluations/${id}?saved=${status}`);
+}
+
+export async function setEvaluationNotesAction(fd: FormData) {
+  await requireAdmin();
+  const id = Number(fd.get("id"));
+  if (!Number.isInteger(id)) return;
+  const db = await getDb();
+  await db
+    .update(profileEvaluations)
+    .set({ adminNotes: String(fd.get("adminNotes") ?? "").trim().slice(0, 4000) || null, updatedAt: new Date() })
+    .where(eq(profileEvaluations.id, id));
+  redirect(`/admin/evaluations/${id}?saved=notes`);
 }
 
 // ---------- packs ----------

@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, customType, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type { Batch } from "@/content/site/batches";
 
 /** Enquiries from the website forms. */
@@ -188,3 +188,47 @@ export const classEnrollments = pgTable(
   (t) => [uniqueIndex("class_enrollments_student_class").on(t.studentId, t.classSlug)],
 );
 export type ClassEnrollment = typeof classEnrollments.$inferSelect;
+
+/** Raw file bytes (uploaded documents). */
+const bytea = customType<{ data: Uint8Array; driverData: Uint8Array }>({ dataType: () => "bytea" });
+
+/** What the student tells us in the free profile evaluation form (see lib/evaluation.ts). */
+export type EvaluationDetails = {
+  degree: string;
+  university: string;
+  score: string;
+  gradYear: string;
+  targetCourse: string;
+  intake: string;
+  workExperience?: string;
+  englishTest?: string;
+  message?: string;
+};
+
+/**
+ * Free profile evaluations for the Complete Germany Plan, with one uploaded document (transcript or semester results).
+ * submitted (under evaluation) → fit / not_fit → call_done (after our call: the student may pay for the plan).
+ */
+export const profileEvaluations = pgTable("profile_evaluations", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => students.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("submitted"),
+  details: jsonb("details").$type<EvaluationDetails>().notNull(),
+  docName: text("doc_name").notNull(),
+  docType: text("doc_type").notNull(),
+  docSize: integer("doc_size").notNull(),
+  docData: bytea("doc_data").notNull(),
+  /** shown to the student with the result */
+  noteToStudent: text("note_to_student"),
+  /** only for the team */
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  evaluatedAt: timestamp("evaluated_at", { withTimezone: true }),
+  calledAt: timestamp("called_at", { withTimezone: true }),
+});
+export type ProfileEvaluation = typeof profileEvaluations.$inferSelect;
+export const EVALUATION_STATUSES = ["submitted", "fit", "not_fit", "call_done"] as const;
+export type EvaluationStatus = (typeof EVALUATION_STATUSES)[number];
