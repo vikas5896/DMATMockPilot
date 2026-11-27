@@ -17,7 +17,7 @@ export const BRAND = {
   /** Social profiles shown in the footer (empty = hidden) */
   social: {
     instagram: "https://www.instagram.com/dmatmockprep/",
-    youtube: "",
+    youtube: "https://www.youtube.com/@dmatmockprep",
     linkedin: "",
   },
 };

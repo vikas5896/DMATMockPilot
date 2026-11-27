@@ -54,6 +54,21 @@ export function SiteFooter() {
               @dmatmockprep
             </a>
           )}
+          {BRAND.social.youtube && (
+            <a
+              href={BRAND.social.youtube}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${BRAND.name} on YouTube`}
+              className="mt-2 flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-brand"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="5" width="20" height="14" rx="4" />
+                <path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none" />
+              </svg>
+              YouTube
+            </a>
+          )}
           {(email || phone) && (
             <p className="mt-3 space-y-1 text-sm text-zinc-700">
               {email && <a href={`mailto:${email}`} className="block hover:text-brand">{email}</a>}
@@ -87,7 +102,7 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t border-zinc-200">
-        <p className="mx-auto max-w-6xl px-6 py-5 text-xs leading-5 text-zinc-500">
+        <p data-nosnippet className="mx-auto max-w-6xl px-6 py-5 text-xs leading-5 text-zinc-500">
           {BRAND.name} is an independent preparation and guidance service. It is not affiliated with, or endorsed by,
           g.a.s.t., APS India, DAAD or any German university. dMAT is the name of the test we help you prepare for.
         </p>
