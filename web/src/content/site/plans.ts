@@ -1,4 +1,8 @@
-/** The three ways to work with us (shown on /plans). Edit prices and inclusions here. */
+/**
+ * The three ways to work with us (shown on /plans and the home page).
+ * Pack prices are live: write {section-pack}, {full-pack}, {full-pack:base} or {packs-from} (see PriceText),
+ * set the prices in Admin → Packs and offers in Admin → Promo codes.
+ */
 export type Plan = {
   id: "mocks" | "classes" | "complete";
   name: string;
@@ -19,11 +23,11 @@ export const PLANS: Plan[] = [
     name: "Mock Tests",
     tagline: "Practise on your own, in the real exam format.",
     price: "Free",
-    priceNote: "to start · packs from ₹499",
+    priceNote: "to start · packs from {packs-from}",
     bullets: [
       "Free full dMAT mock plus one free test per section",
-      "Section Pack ₹499: 27 timed tests for the three Core sections",
-      "Full Pack ₹1,599: full mocks 2–10 and every section test, including the Subject Module",
+      "Section Pack {section-pack}: 27 timed tests for the three Core sections",
+      "Full Pack {full-pack}: full mocks 2–10 and every section test, including the Subject Module",
       "Real exam timer, no pen and paper, step-by-step solutions",
     ],
     cta: { label: "Start the free mock", href: "/mock-tests" },
@@ -35,7 +39,7 @@ export const PLANS: Plan[] = [
     tagline: "Learn the dMAT live, with a teacher who sat it.",
     price: "Per course",
     priceNote: "fee shown with each batch",
-    highlight: "Full Pack (₹1,599) included free",
+    highlight: "Full Pack (worth {full-pack:base}) included free",
     bullets: [
       "Live online dMAT courses with recordings",
       "Rules, shortcuts and timed drills for every section",
@@ -69,7 +73,7 @@ export const PLANS: Plan[] = [
 /** Feature comparison rows: [feature, mocks, classes, complete]. */
 export const COMPARE: [string, string, string, string][] = [
   ["Free full dMAT mock", "Included", "Included", "Included"],
-  ["Mock test packs", "From ₹499", "Full Pack included", "Full Pack included"],
+  ["Mock test packs", "From {packs-from}", "Full Pack included", "Full Pack included"],
   ["Live dMAT classes", "–", "Included", "Included"],
   ["APS guidance", "–", "–", "Included"],
   ["Profile evaluation", "Free", "Free", "Free"],

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PlanPrice } from "@/components/site/PlanPrice";
+import { PriceText } from "@/components/site/PriceText";
 import { COMPARE, PLANS } from "@/content/site/plans";
 import { Faq, PageHero, Section } from "@/components/site/ui";
 import { EvaluationCta } from "@/components/site/EvaluationCta";
@@ -39,20 +40,24 @@ export default function PlansPage() {
                       top ? "bg-brand text-white" : "bg-emerald-50 text-emerald-700"
                     }`}
                   >
-                    {p.highlight}
+                    <PriceText text={p.highlight} />
                   </p>
                 )}
                 <h2 className="text-2xl font-bold">{p.name}</h2>
                 <p className="mt-1 text-zinc-600">{p.tagline}</p>
                 <p className="mt-5 text-4xl font-bold text-brand">{p.id === "complete" ? <PlanPrice fallback={p.price} /> : p.price}</p>
-                <p className="text-sm text-zinc-500">{p.priceNote}</p>
+                <p className="text-sm text-zinc-500">
+                  <PriceText text={p.priceNote} />
+                </p>
                 <ul className="mt-6 flex-1 space-y-2.5">
                   {p.bullets.map((b) => (
                     <li key={b} className="flex gap-2 text-[15px]">
                       <span className="mt-0.5 font-bold text-emerald-600" aria-hidden>
                         ✓
                       </span>
-                      <span>{b}</span>
+                      <span>
+                        <PriceText text={b} />
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -96,7 +101,7 @@ export default function PlansPage() {
                   <td className="px-4 py-3 font-medium">{f}</td>
                   {[a, b, c].map((v, i) => (
                     <td key={i} className={`px-4 py-3 ${v === "–" ? "text-zinc-400" : i === 2 ? "font-semibold text-brand" : ""}`}>
-                      {v === "Included" ? "✓ Included" : v}
+                      {v === "Included" ? "✓ Included" : <PriceText text={v} />}
                     </td>
                   ))}
                 </tr>

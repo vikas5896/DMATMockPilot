@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PlanPrice } from "@/components/site/PlanPrice";
+import { PriceText } from "@/components/site/PriceText";
 import { formatRange } from "@/content/site/batches";
 import { getPublicBatches } from "@/lib/batch-store";
 import { PLANS } from "@/content/site/plans";
@@ -128,11 +129,15 @@ export default async function Home() {
                 p.id === "complete" ? "border-2 border-brand" : "border border-zinc-200"
               }`}
             >
-              {p.highlight && <Badge tone={p.id === "complete" ? "brand" : "green"}>{p.highlight}</Badge>}
+              {p.highlight && <Badge tone={p.id === "complete" ? "brand" : "green"}>
+                  <PriceText text={p.highlight} />
+                </Badge>}
               <h3 className="mt-3 text-lg font-bold">{p.name}</h3>
               <p className="mt-1 flex-1 text-sm text-zinc-600">{p.tagline}</p>
               <p className="mt-4 text-2xl font-bold text-brand">{p.id === "complete" ? <PlanPrice fallback={p.price} /> : p.price}</p>
-              <p className="text-xs text-zinc-500">{p.priceNote}</p>
+              <p className="text-xs text-zinc-500">
+                <PriceText text={p.priceNote} />
+              </p>
               <p className="mt-4 text-sm font-semibold text-brand">See what’s included →</p>
             </Link>
           ))}
